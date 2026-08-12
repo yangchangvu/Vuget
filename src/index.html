@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedWidget</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="left-panel" data-tauri-drag-region>
+      <div class="clock-section">
+        <div id="clock-time" class="clock-time">21:45</div>
+        <div id="clock-date" class="clock-date">Thứ Tư<br>12/08/2026</div>
+        <div id="lunar-date" class="lunar-date">19/06 Âm lịch</div>
+      </div>
+      <div class="weather-mini">
+        <div id="weather-icon" class="weather-icon">☀️</div>
+        <div id="weather-temp" class="weather-temp">32°C</div>
+        <div id="weather-humidity" class="weather-humidity">Độ ẩm 68%</div>
+      </div>
+    </div>
+
+    <div class="right-panel" id="right-panel">
+      <div class="drag-bar" data-tauri-drag-region title="Kéo để di chuyển widget"></div>
+      <div class="panel-container" id="panel-container">
+        <div class="panel" data-panel="0" id="panel-weather">
+          <div class="panel-header">Thời tiết hôm nay</div>
+          <div class="weather-current">
+            <span id="current-temp" class="current-temp">32°C</span>
+            <span id="current-desc" class="current-desc">Trời trong</span>
+          </div>
+          <div class="weather-forecast" id="weather-forecast"></div>
+        </div>
+
+        <div class="panel" data-panel="1" id="panel-sysmon">
+          <div class="panel-header">System Monitor</div>
+          <div class="sysinfo-grid" id="sysinfo-grid"></div>
+        </div>
+
+        <div class="panel" data-panel="2" id="panel-calendar">
+          <div class="panel-header">
+            <button class="cal-nav" id="cal-prev">‹</button>
+            <span id="cal-title">Tháng 8 2026</span>
+            <button class="cal-nav" id="cal-next">›</button>
+            <button class="cal-nav" id="cal-today">Hôm nay</button>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="panel" data-panel="3" id="panel-notes">
+          <div class="panel-header">
+            Notes
+          </div>
+          <div class="note-input-row">
+            <input id="note-input" placeholder="Thêm note mới..." maxlength="200">
+            <button class="add-note-btn" id="add-note-btn">+</button>
+          </div>
+          <div class="notes-list" id="notes-list"></div>
+        </div>
+        <div class="scroll-progress"><div class="scroll-thumb" id="scroll-thumb"></div></div>
+      </div>
+      <div class="panel-dots" id="panel-dots"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
