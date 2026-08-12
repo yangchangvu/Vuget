@@ -65,6 +65,20 @@ Test lịch âm:
 cargo test
 ```
 
+## Chia sẻ cho bạn bè
+
+Bản release là **1 file exe duy nhất** (~4.5 MB), không cần cài đặt:
+
+```
+src-tauri/target/release/redwidget.exe
+```
+
+Gửi file này qua Zalo/Drive/USB — người nhận double-click là chạy.
+Yêu cầu máy nhận: Windows 10/11 có WebView2 (gần như luôn có sẵn;
+nếu thiếu thì cài WebView2 Runtime từ Microsoft).
+Vì exe chưa ký số, lần đầu Windows SmartScreen sẽ cảnh báo —
+chọn *More info → Run anyway*.
+
 ## Cấu trúc
 
 ```
