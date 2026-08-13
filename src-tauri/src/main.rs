@@ -9,7 +9,7 @@ mod weather;
 use chrono::Local;
 use serde_json::{json, Value};
 use std::sync::Mutex;
-use tauri::{AppHandle, Listener, Manager, State};
+use tauri::{AppHandle, Manager, State};
 
 struct AppState {
     config: Mutex<config::Config>,
@@ -123,6 +123,25 @@ async fn delete_note(state: State<'_, AppState>, id: u32) -> Result<(), String> 
     Ok(())
 }
 
+// Đồng bộ khóa registry Run (start with Windows) theo config
+fn sync_autostart(enabled: bool) {
+    use winreg::enums::*;
+    use winreg::RegKey;
+    let Ok(run) = RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(
+        r"Software\Microsoft\Windows\CurrentVersion\Run",
+        KEY_SET_VALUE,
+    ) else {
+        return;
+    };
+    if enabled {
+        if let Ok(exe) = std::env::current_exe() {
+            let _ = run.set_value("RedWidget", &exe.to_string_lossy().to_string());
+        }
+    } else {
+        let _ = run.delete_value("RedWidget");
+    }
+}
+
 fn main() {
     let state = AppState {
         config: Mutex::new(config::Config::load()),
@@ -142,6 +161,7 @@ fn main() {
                 if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
                     let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
                 }
+                sync_autostart(cfg.autostart);
             }
 
             // Sau mỗi lần kéo/resize xong (debounce 500ms) thì lưu vị trí + kích thước
@@ -172,9 +192,11 @@ fn main() {
                 });
             }
             let h2 = handle.clone();
-            app.listen("tauri://move", move |_| schedule_save(h2.clone()));
-            let h3 = handle.clone();
-            app.listen("tauri://resize", move |_| schedule_save(h3.clone()));
+            window.on_window_event(move |event| {
+                if matches!(event, tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)) {
+                    schedule_save(h2.clone());
+                }
+            });
 
             Ok(())
         })
