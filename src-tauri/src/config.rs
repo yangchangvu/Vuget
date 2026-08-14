@@ -26,13 +26,14 @@ pub struct Config {
     pub clock_24h: bool,
     pub show_lunar: bool,
     pub autostart: bool,
-    pub click_through: bool,
     pub weather_lat: f64,
     pub weather_lon: f64,
     pub weather_location: String,
     pub weather_interval_min: u64,
     pub sysmon_interval_s: u64,
     pub default_panel: u32,
+    pub theme: String,
+    pub language: String,
 }
 
 impl Default for Config {
@@ -47,13 +48,14 @@ impl Default for Config {
             clock_24h: true,
             show_lunar: true,
             autostart: true,
-            click_through: false,
             weather_lat: 16.0544,
             weather_lon: 108.2022,
             weather_location: String::from("Đà Nẵng"),
             weather_interval_min: 15,
             sysmon_interval_s: 30,
             default_panel: 0,
+            theme: String::from("red"),
+            language: String::from("vi"),
         }
     }
 }

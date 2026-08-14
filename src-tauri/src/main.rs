@@ -103,16 +103,16 @@ async fn get_notes(state: State<'_, AppState>) -> Result<Value, String> {
 }
 
 #[tauri::command]
-async fn add_note(state: State<'_, AppState>, text: String) -> Result<u32, String> {
+async fn add_note(state: State<'_, AppState>, title: String, body: String) -> Result<u32, String> {
     let mut notes = state.notes.lock().unwrap();
-    let id = notes.add(text);
+    let id = notes.add(title, body);
     Ok(id)
 }
 
 #[tauri::command]
-async fn update_note(state: State<'_, AppState>, id: u32, text: String) -> Result<(), String> {
+async fn update_note(state: State<'_, AppState>, id: u32, title: String, body: String) -> Result<(), String> {
     let mut notes = state.notes.lock().unwrap();
-    notes.update(id, text);
+    notes.update(id, title, body);
     Ok(())
 }
 
@@ -120,6 +120,27 @@ async fn update_note(state: State<'_, AppState>, id: u32, text: String) -> Resul
 async fn delete_note(state: State<'_, AppState>, id: u32) -> Result<(), String> {
     let mut notes = state.notes.lock().unwrap();
     notes.remove(id);
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_note_pinned(state: State<'_, AppState>, id: u32) -> Result<(), String> {
+    let mut notes = state.notes.lock().unwrap();
+    notes.toggle_pinned(id);
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_note_hidden(state: State<'_, AppState>, id: u32) -> Result<(), String> {
+    let mut notes = state.notes.lock().unwrap();
+    notes.toggle_hidden(id);
+    Ok(())
+}
+
+#[tauri::command]
+async fn reorder_notes(state: State<'_, AppState>, ids: Vec<u32>) -> Result<(), String> {
+    let mut notes = state.notes.lock().unwrap();
+    notes.reorder(ids);
     Ok(())
 }
 
@@ -153,13 +174,15 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Đặt cửa sổ vào vị trí đã lưu (nếu chưa có thì conf center=true tự giữa màn hình)
+            // Đặt cửa sổ vào vị trí đã lưu; nếu chưa có thì canh giữa màn hình chính
             let window = handle.get_webview_window("main").unwrap();
             {
                 let state = handle.state::<AppState>();
                 let cfg = state.config.lock().unwrap();
                 if let (Some(x), Some(y)) = (cfg.x, cfg.y) {
                     let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+                } else {
+                    let _ = window.center();
                 }
                 sync_autostart(cfg.autostart);
             }
@@ -210,7 +233,10 @@ fn main() {
             get_notes,
             add_note,
             update_note,
-            delete_note
+            delete_note,
+            toggle_note_pinned,
+            toggle_note_hidden,
+            reorder_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
