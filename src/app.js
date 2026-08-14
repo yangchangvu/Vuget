@@ -1,7 +1,155 @@
 const { invoke } = window.__TAURI__.core;
 
 let currentPanel = 0;
-const PANELS = ['panel-weather', 'panel-sysmon', 'panel-calendar', 'panel-notes'];
+const PANELS = ['panel-notes', 'panel-weather', 'panel-sysmon', 'panel-calendar', 'panel-settings', 'panel-about'];
+const THEMES = [
+  { id: 'red',       bg: '#221418', accent: '#d9665a' },
+  { id: 'dark',      bg: '#121218', accent: '#6e8fff' },
+  { id: 'midnight',  bg: '#0e1222', accent: '#7c6ee0' },
+  { id: 'forest',    bg: '#101e18', accent: '#5fae7e' },
+  { id: 'sand',      bg: '#282016', accent: '#d4a55a' },
+];
+const APP_VERSION = '0.2.1';
+
+const I18N = {
+  vi: {
+    days: ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'],
+    calHeaders: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    lunarSuffix: 'Âm lịch',
+    leap: 'nhuận',
+    notes: 'Ghi chú',
+    addNote: '+ Thêm',
+    addNotePlaceholder: 'Thêm note mới...',
+    notesEmpty: 'Chưa có note nào — bấm "+ Thêm" để tạo.',
+    noteTitlePlaceholder: 'Tiêu đề...',
+    noteBodyPlaceholder: 'Nội dung...',
+    pin: 'Ghim',
+    hideContent: 'Ẩn nội dung',
+    delete: 'Xóa',
+    save: 'Lưu',
+    pinned: 'Đã ghim',
+    hidden: 'Đã ẩn',
+    weatherToday: 'Thời tiết hôm nay',
+    systemMonitor: 'System Monitor',
+    today: 'Hôm nay',
+    month: 'Tháng',
+    settings: 'Thiết lập',
+    appearance: 'Giao diện',
+    appearanceHint: 'Chọn tông màu',
+    opacity: 'Độ trong suốt',
+    language: 'Ngôn ngữ',
+    autostart: 'Khởi động cùng Windows',
+    version: 'Phiên bản',
+    dragHint: 'Kéo để di chuyển widget',
+    humidity: 'Độ ẩm',
+    noData: 'Không có dữ liệu',
+    readError: 'Không đọc được dữ liệu',
+    hourly: 'Trong ngày',
+    daily: 'Những ngày tới',
+    cpu: 'CPU',
+    ram: 'RAM',
+    disk: 'Đĩa',
+    network: 'Mạng',
+    changelog: 'Lịch sử cập nhật',
+  },
+  en: {
+    days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    calHeaders: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    lunarSuffix: 'Lunar',
+    leap: 'leap',
+    notes: 'Notes',
+    addNote: '+ Add',
+    addNotePlaceholder: 'Add a note...',
+    notesEmpty: 'No notes yet — click "+ Add" to create.',
+    noteTitlePlaceholder: 'Title...',
+    noteBodyPlaceholder: 'Content...',
+    pin: 'Pin',
+    hideContent: 'Hide content',
+    delete: 'Delete',
+    save: 'Save',
+    pinned: 'Pinned',
+    hidden: 'Hidden',
+    weatherToday: "Today's weather",
+    systemMonitor: 'System Monitor',
+    today: 'Today',
+    month: 'Month',
+    settings: 'Settings',
+    appearance: 'Appearance',
+    appearanceHint: 'Choose color tone',
+    opacity: 'Opacity',
+    language: 'Language',
+    autostart: 'Start with Windows',
+    version: 'Version',
+    dragHint: 'Drag to move widget',
+    humidity: 'Humidity',
+    noData: 'No data',
+    readError: 'Cannot read data',
+    hourly: 'Today',
+    daily: 'Upcoming days',
+    cpu: 'CPU',
+    ram: 'RAM',
+    disk: 'Disk',
+    network: 'Network',
+    changelog: 'Changelog',
+  },
+  zh: {
+    days: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
+    calHeaders: ['一', '二', '三', '四', '五', '六', '日'],
+    lunarSuffix: '农历',
+    leap: '闰',
+    notes: '便签',
+    addNote: '+ 新增',
+    addNotePlaceholder: '添加便签...',
+    notesEmpty: '还没有便签 — 点击「+ 新增」创建。',
+    noteTitlePlaceholder: '标题...',
+    noteBodyPlaceholder: '内容...',
+    pin: '置顶',
+    hideContent: '隐藏内容',
+    delete: '删除',
+    save: '保存',
+    pinned: '已置顶',
+    hidden: '已隐藏',
+    weatherToday: '今日天气',
+    systemMonitor: '系统监控',
+    today: '今天',
+    month: '月',
+    settings: '设置',
+    appearance: '外观',
+    appearanceHint: '选择色调',
+    opacity: '透明度',
+    language: '语言',
+    autostart: '开机启动',
+    version: '版本',
+    dragHint: '拖动以移动小部件',
+    humidity: '湿度',
+    noData: '无数据',
+    readError: '无法读取数据',
+    hourly: '今日',
+    daily: '未来几天',
+    cpu: 'CPU',
+    ram: '内存',
+    disk: '磁盘',
+    network: '网络',
+    changelog: '更新日志',
+  },
+};
+let lang = 'vi';
+function t(key) { return (I18N[lang] && I18N[lang][key]) || (I18N.vi[key]) || key; }
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  const inp = document.getElementById('note-input');
+  if (inp) inp.placeholder = t('addNotePlaceholder');
+}
 let config = null;
 let calYear, calMonth;
 
@@ -12,7 +160,7 @@ function updateClock() {
   const m = String(now.getMinutes()).padStart(2, '0');
   document.getElementById('clock-time').textContent = `${h}:${m}`;
 
-  const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  const days = t('days');
   const dd = String(now.getDate()).padStart(2, '0');
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yyyy = now.getFullYear();
@@ -24,7 +172,7 @@ async function updateLunar() {
     const res = await invoke('get_lunar_date');
     if (res) {
       document.getElementById('lunar-date').textContent =
-        `${res.day}/${res.month}${res.leap ? ' nhuận' : ''} Âm lịch · ${res.yearName}`;
+        `${res.day}/${res.month}${res.leap ? ' ' + t('leap') : ''} ${t('lunarSuffix')} · ${res.yearName}`;
     }
   } catch (e) {
     document.getElementById('lunar-date').textContent = '';
@@ -41,20 +189,20 @@ async function updateWeather() {
     });
     document.getElementById('weather-icon').textContent = res.icon;
     document.getElementById('weather-temp').textContent = `${Math.round(res.temp)}°C`;
-    document.getElementById('weather-humidity').textContent = `Độ ẩm ${Math.round(res.humidity)}%`;
+    document.getElementById('weather-humidity').textContent = `${t('humidity')} ${Math.round(res.humidity)}%`;
     document.getElementById('current-temp').textContent = `${Math.round(res.temp)}°C`;
     document.getElementById('current-desc').textContent = res.description;
 
     const fc = document.getElementById('weather-forecast');
     let html = '';
     if (res.hourly && res.hourly.length) {
-      html += '<div class="forecast-title">Trong ngày</div><div class="forecast-row">';
+      html += `<div class="forecast-title">${t('hourly')}</div><div class="forecast-row">`;
       html += res.hourly.map(h =>
         `<div class="forecast-card"><span class="fc-time">${h.time}</span><span class="fc-icon">${h.icon}</span><span class="fc-temp">${Math.round(h.temp)}°</span></div>`).join('');
       html += '</div>';
     }
     if (res.daily && res.daily.length) {
-      html += '<div class="forecast-title">Những ngày tới</div><div class="forecast-row">';
+      html += `<div class="forecast-title">${t('daily')}</div><div class="forecast-row">`;
       html += res.daily.map(d =>
         `<div class="forecast-card"><span class="fc-time">${escapeHtml(d.label)}</span><span class="fc-icon">${d.icon}</span><span class="fc-temp">${Math.round(d.min)}–${Math.round(d.max)}°</span></div>`).join('');
       html += '</div>';
@@ -62,7 +210,7 @@ async function updateWeather() {
     fc.innerHTML = html;
   } catch (e) {
     document.getElementById('weather-temp').textContent = 'N/A';
-    document.getElementById('weather-humidity').textContent = 'Không có dữ liệu';
+    document.getElementById('weather-humidity').textContent = t('noData');
   }
 }
 
@@ -75,29 +223,29 @@ async function updateSysInfo() {
     const ramTotalGB = (res.ramTotal / 2**30).toFixed(1);
     document.getElementById('sysinfo-grid').innerHTML = `
       <div class="sysinfo-item">
-        <div class="sysinfo-label">CPU · ${escapeHtml(res.cpuName)}</div>
+        <div class="sysinfo-label">${t('cpu')} · ${escapeHtml(res.cpuName)}</div>
         <div class="sysinfo-value">${res.cpuUsage.toFixed(0)}%</div>
         <div class="sysinfo-bar"><div class="sysinfo-bar-fill" style="width:${res.cpuUsage}%"></div></div>
       </div>
       <div class="sysinfo-item">
-        <div class="sysinfo-label">RAM</div>
+        <div class="sysinfo-label">${t('ram')}</div>
         <div class="sysinfo-value">${ramGB} / ${ramTotalGB} GB · ${res.ramPercent.toFixed(0)}%</div>
         <div class="sysinfo-bar"><div class="sysinfo-bar-fill" style="width:${res.ramPercent}%"></div></div>
       </div>
       <div class="sysinfo-item">
-        <div class="sysinfo-label">Disk</div>
+        <div class="sysinfo-label">${t('disk')}</div>
         <div class="sysinfo-value">${fmtBytes(res.diskUsed)} / ${fmtBytes(res.diskTotal)} · ${res.diskPercent.toFixed(0)}%</div>
         <div class="sysinfo-bar"><div class="sysinfo-bar-fill" style="width:${res.diskPercent}%"></div></div>
       </div>
       <div class="sysinfo-item">
-        <div class="sysinfo-label">Network</div>
+        <div class="sysinfo-label">${t('network')}</div>
         <div class="sysinfo-value net-row">
           <span class="net-in">↓ ${fmtRate(res.netRx)}</span>
           <span class="net-out">↑ ${fmtRate(res.netTx)}</span>
         </div>
       </div>`;
   } catch (e) {
-    document.getElementById('sysinfo-grid').innerHTML = '<div class="sysinfo-item">Không đọc được dữ liệu</div>';
+    document.getElementById('sysinfo-grid').innerHTML = `<div class="sysinfo-item">${t('readError')}</div>`;
   }
   refreshScrollable();
 }
@@ -119,9 +267,9 @@ function fmtRate(bps) {
 async function renderCalendar() {
   const grid = document.getElementById('calendar-grid');
   const title = document.getElementById('cal-title');
-  title.textContent = `Tháng ${calMonth + 1} ${calYear}`;
+  title.textContent = `${t('month')} ${calMonth + 1} ${calYear}`;
 
-  const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const days = t('calHeaders');
   let html = days.map(d => `<div class="cal-day-header">${d}</div>`).join('');
 
   const first = new Date(calYear, calMonth, 1);
@@ -163,48 +311,213 @@ document.getElementById('cal-today').addEventListener('click', () => {
 });
 
 // ---------- Notes ----------
+function stripHtml(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return (d.textContent || '').trim();
+}
+
+function notePreview(note) {
+  if (note.hidden) return '••••••';
+  const txt = stripHtml(note.body || note.text || '');
+  return txt.slice(0, 60) + (txt.length > 60 ? '…' : '');
+}
+
 async function loadNotes() {
   const res = await invoke('get_notes');
   const list = document.getElementById('notes-list');
   list.innerHTML = '';
-  if (res.items.length === 0) {
-    list.innerHTML = '<div class="notes-empty">Chưa có note nào — gõ vào ô phía trên để thêm.</div>';
+  // Ghim lên đầu, còn lại giữ thứ tự
+  const sorted = [...res.items].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  if (sorted.length === 0) {
+    list.innerHTML = `<div class="notes-empty">${t('notesEmpty')}</div>`;
     refreshScrollable();
     return;
   }
-  for (const note of res.items) {
+  for (const note of sorted) {
     const item = document.createElement('div');
-    item.className = 'note-item';
+    item.className = 'note-card' + (note.pinned ? ' pinned' : '');
+    item.dataset.id = note.id;
     item.innerHTML = `
-      <div class="note-text" contenteditable="true">${escapeHtml(note.text)}</div>
-      <button class="note-delete">✕</button>`;
-    const textEl = item.querySelector('.note-text');
-    textEl.addEventListener('blur', async () => {
-      const newText = textEl.textContent.trim();
-      if (newText !== note.text) await invoke('update_note', { id: note.id, text: newText });
+      <div class="note-grip" title="Kéo để sắp xếp">⠿</div>
+      <div class="note-main">
+        <div class="note-card-title">${escapeHtml(note.title || t('noteTitlePlaceholder'))}</div>
+        <div class="note-card-preview">${escapeHtml(notePreview(note))}</div>
+      </div>
+      ${note.pinned ? '<span class="note-badge pin">★</span>' : ''}
+      ${note.hidden ? '<span class="note-badge hide">⊘</span>' : ''}
+      <button class="note-card-delete">✕</button>`;
+    item.addEventListener('click', e => {
+      if (e.target.closest('.note-grip, .note-card-delete')) return;
+      openNoteModal(note.id);
     });
-    item.querySelector('.note-delete').addEventListener('click', async () => {
+    item.querySelector('.note-card-delete').addEventListener('click', async e => {
+      e.stopPropagation();
       await invoke('delete_note', { id: note.id });
       loadNotes();
     });
     list.appendChild(item);
   }
+  bindNoteDrag(list);
   refreshScrollable();
 }
 
-async function addNoteFromInput() {
-  const input = document.getElementById('note-input');
-  const text = input.value.trim();
-  if (!text) return;
-  await invoke('add_note', { text });
-  input.value = '';
+// ---------- Note modal ----------
+let currentNoteId = null;
+
+async function openNoteModal(id) {
+  currentNoteId = id;
+  const res = await invoke('get_notes');
+  const note = res.items.find(n => n.id === id);
+  if (!note) return;
+  const modal = document.getElementById('note-modal');
+  document.getElementById('note-modal-title').value = note.title || '';
+  const body = document.getElementById('note-modal-body');
+  body.innerHTML = note.body || '';
+  document.getElementById('nm-pin').classList.toggle('active', note.pinned);
+  document.getElementById('nm-hide').classList.toggle('active', note.hidden);
+  modal.classList.add('open');
+  setTimeout(() => document.getElementById('note-modal-title').focus(), 50);
+}
+
+function closeNoteModal() {
+  document.getElementById('note-modal').classList.remove('open');
+  currentNoteId = null;
+}
+
+async function saveCurrentNote() {
+  if (currentNoteId == null) return;
+  const title = document.getElementById('note-modal-title').value.trim();
+  const body = document.getElementById('note-modal-body').innerHTML;
+  await invoke('update_note', { id: currentNoteId, title, body });
+  closeNoteModal();
   loadNotes();
 }
 
-document.getElementById('add-note-btn').addEventListener('click', addNoteFromInput);
-document.getElementById('note-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addNoteFromInput();
+document.getElementById('note-add-btn').addEventListener('click', async () => {
+  const id = await invoke('add_note', { title: '', body: '' });
+  await loadNotes();
+  openNoteModal(id);
 });
+
+document.getElementById('nm-save').addEventListener('click', saveCurrentNote);
+document.getElementById('nm-delete').addEventListener('click', async () => {
+  if (currentNoteId == null) return;
+  await invoke('delete_note', { id: currentNoteId });
+  closeNoteModal();
+  loadNotes();
+});
+document.getElementById('nm-pin').addEventListener('click', async function() {
+  if (currentNoteId == null) return;
+  await invoke('toggle_note_pinned', { id: currentNoteId });
+  this.classList.toggle('active');
+  loadNotes();
+});
+document.getElementById('nm-hide').addEventListener('click', async function() {
+  if (currentNoteId == null) return;
+  await invoke('toggle_note_hidden', { id: currentNoteId });
+  this.classList.toggle('active');
+  loadNotes();
+});
+
+// Toolbar format
+document.querySelectorAll('.nt-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    const cmd = btn.dataset.cmd;
+    const val = btn.dataset.val || null;
+    if (cmd === 'insertCheckbox') {
+      document.execCommand('insertHTML', false, '<input type="checkbox" class="note-check"> ');
+    } else if (cmd === 'formatBlock') {
+      document.execCommand('formatBlock', false, val);
+    } else {
+      document.execCommand(cmd, false, null);
+    }
+    document.getElementById('note-modal-body').focus();
+  });
+});
+
+// Đóng modal: Esc, click overlay
+document.getElementById('note-modal').addEventListener('click', e => {
+  if (e.target.id === 'note-modal') saveCurrentNote();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('note-modal').classList.contains('open')) {
+    saveCurrentNote();
+  }
+});
+
+// ---------- Drag-drop sắp xếp note ----------
+function bindNoteDrag(list) {
+  let dragEl = null, dragId = null, placeholder = null;
+
+  list.querySelectorAll('.note-grip').forEach(grip => {
+    grip.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const card = grip.closest('.note-card');
+      dragEl = card;
+      dragId = Number(card.dataset.id);
+      card.classList.add('dragging');
+
+      const rect = card.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+
+      placeholder = card.cloneNode(true);
+      placeholder.classList.add('placeholder');
+      placeholder.style.height = rect.height + 'px';
+      card.parentNode.insertBefore(placeholder, card.nextSibling);
+
+      card.style.position = 'fixed';
+      card.style.zIndex = '1000';
+      card.style.width = rect.width + 'px';
+      card.style.left = rect.left + 'px';
+      card.style.top = (e.clientY - offsetY) + 'px';
+
+      function onMove(ev) {
+        card.style.top = (ev.clientY - offsetY) + 'px';
+        movePlaceholder(list, ev.clientY);
+      }
+      function onUp() {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        card.classList.remove('dragging');
+        card.style.cssText = '';
+        if (placeholder.parentNode) {
+          list.insertBefore(card, placeholder);
+          placeholder.remove();
+        }
+        const ids = [...list.querySelectorAll('.note-card')].map(c => Number(c.dataset.id));
+        invoke('reorder_notes', { ids });
+        dragEl = null;
+        placeholder = null;
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
+// Tính xem placeholder nên chèn ở đâu: dựa trên item mà chuột đang nằm trong.
+// Kéo ngang qua item khác (chưa cần quá nửa) đã swap — ngưỡng 1/2.
+function movePlaceholder(list, y) {
+  const cards = [...list.querySelectorAll('.note-card:not(.dragging):not(.placeholder)')];
+  let target = null, before = true;
+  for (const card of cards) {
+    const box = card.getBoundingClientRect();
+    if (y < box.top + box.height * 0.5) {
+      target = card; before = true; break;
+    } else if (y < box.bottom) {
+      target = card; before = false; break;
+    }
+  }
+  if (target == null) {
+    list.appendChild(placeholder);
+  } else if (before) {
+    list.insertBefore(placeholder, target);
+  } else {
+    list.insertBefore(placeholder, target.nextSibling);
+  }
+}
 
 function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -266,6 +579,8 @@ function switchPanel(idx, dir) {
   if (PANELS[currentPanel] === 'panel-sysmon') updateSysInfo();
   if (PANELS[currentPanel] === 'panel-weather') updateWeather();
   if (PANELS[currentPanel] === 'panel-notes') loadNotes();
+  if (PANELS[currentPanel] === 'panel-settings') renderSettings();
+  if (PANELS[currentPanel] === 'panel-about') renderAbout();
   refreshScrollable();
 }
 
@@ -330,22 +645,132 @@ document.getElementById('right-panel').addEventListener('wheel', (e) => {
   switchPanel(currentPanel + dir, dir);
 }, { passive: false });
 
+// ---------- Theme & Settings ----------
+function applyTheme(id) {
+  if (id === 'red' || id === undefined) document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', id);
+  document.getElementById('app').style.background = `rgba(${hexToRgb(themeBg(id))}, ${config.opacity})`;
+}
+
+function themeBg(id) {
+  return (THEMES.find(t => t.id === id) || THEMES[0]).bg;
+}
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+function buildThemeGrid() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = THEMES.map(t => `
+    <div class="theme-chip${t.id === config.theme ? ' active' : ''}" data-theme="${t.id}">
+      <div class="swatch" style="background:linear-gradient(135deg, ${t.bg} 60%, ${t.accent})"></div>
+    </div>`).join('');
+  grid.querySelectorAll('.theme-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      config.theme = chip.dataset.theme;
+      applyTheme(config.theme);
+      grid.querySelectorAll('.theme-chip').forEach(c => c.classList.toggle('active', c.dataset.theme === config.theme));
+      await invoke('save_config', { newConfig: config });
+    });
+  });
+}
+
+function renderSettings() {
+  buildThemeGrid();
+  const op = document.getElementById('opacity-range');
+  const opv = document.getElementById('opacity-value');
+  op.value = config.opacity;
+  opv.textContent = Math.round(config.opacity * 100) + '%';
+  document.getElementById('toggle-autostart').classList.toggle('on', config.autostart);
+  document.querySelectorAll('.lang-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.lang === lang);
+  });
+  refreshScrollable();
+}
+
+document.getElementById('opacity-range').addEventListener('input', async e => {
+  config.opacity = parseFloat(e.target.value);
+  document.getElementById('opacity-value').textContent = Math.round(config.opacity * 100) + '%';
+  applyTheme(config.theme);
+});
+document.getElementById('opacity-range').addEventListener('change', async e => {
+  await invoke('save_config', { newConfig: config });
+});
+
+document.getElementById('toggle-autostart').addEventListener('click', async function() {
+  config.autostart = !config.autostart;
+  this.classList.toggle('on', config.autostart);
+  await invoke('save_config', { newConfig: config });
+});
+
+document.querySelectorAll('.lang-pill').forEach(pill => {
+  pill.addEventListener('click', async () => {
+    lang = config.language = pill.dataset.lang;
+    applyLang();
+    updateClock();
+    updateLunar();
+    renderCalendar();
+    renderSettings();
+    await invoke('save_config', { newConfig: config });
+  });
+});
+
+// ---------- About / Changelog ----------
+const CHANGELOG = [
+  { ver: '0.2.1', date: '2026-08-15', vi: 'Nâng cấp Notes: tiêu đề + nội dung, modal editor (bold/checkbox/list), kéo-thả sắp xếp, ghim/ẩn. Chọn ngôn ngữ dạng pill. Hiển thị tác giả.', en: 'Notes upgrade: title + body, modal editor (bold/checkbox/list), drag-drop reorder, pin/hide. Language pills. Author info.', zh: '便签升级：标题+正文、模态编辑器（加粗/勾选/列表）、拖拽排序、置顶/隐藏。语言切换改为按钮。作者信息。' },
+  { ver: '0.2.0', date: '2026-08-14', vi: 'Thêm 5 theme (đỏ/tối/đêm/rừng/cát), i18n Việt-Anh-Trung, panel phiên bản.', en: 'Added 5 themes, EN/Vi/Zh i18n, version panel.', zh: '新增 5 主题、中英越三语、版本面板。' },
+  { ver: '0.1.2', date: '2026-08-14', vi: 'Khởi động cùng Windows (registry Run), nhớ vị trí cửa sổ.', en: 'Start with Windows, remember window position.', zh: '开机启动、记住窗口位置。' },
+  { ver: '0.1.0', date: '2026-08-12', vi: 'Desktop personal widget MVP: đồng hồ, thời tiết, lịch âm, notes, system monitor.', en: 'Desktop widget MVP: clock, weather, lunar calendar, notes, sysmon.', zh: '桌面小组件 MVP：时钟、天气、农历、便签、系统监控。' },
+];
+
+function renderAbout() {
+  const c = document.getElementById('about-content');
+  const entries = CHANGELOG.map(e => {
+    const dateStr = e.date;
+    const desc = e[lang] || e.vi;
+    return `<div class="changelog-item">
+      <div class="changelog-ver">v${e.ver}<span class="changelog-date">${dateStr}</span></div>
+      <div class="changelog-desc">${escapeHtml(desc)}</div>
+    </div>`;
+  }).join('');
+  c.innerHTML = `
+    <div class="about-hero">
+      <div class="about-app-row">
+        <span class="about-app-name">RedWidget</span>
+        <span class="about-app-ver">v${APP_VERSION}</span>
+      </div>
+      <div class="about-author">
+        <span class="about-author-name">Dương Trường Vũ</span>
+        <span class="about-author-sep">·</span>
+        <span class="about-author-meta">yang.changvu@gmail.com</span>
+      </div>
+    </div>
+    <div class="about-section-title">${t('changelog')}</div>
+    <div class="changelog-list">${entries}</div>`;
+  refreshScrollable();
+}
+
 // ---------- Init ----------
 async function init() {
   config = await invoke('get_config');
+  lang = config.language || 'vi';
 
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
 
+  applyLang();
+  applyTheme(config.theme);
   updateClock();
   setInterval(updateClock, 10000);
   updateLunar();
 
   renderCalendar();
-  loadNotes();
   buildDots();
   updateWeather();
+  loadNotes();
   weatherTimer = setInterval(updateWeather, (config.weather_interval_min || 15) * 60000);
   sysTimer = setInterval(updateSysInfo, (config.sysmon_interval_s || 30) * 1000);
 

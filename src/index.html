@@ -22,10 +22,18 @@
     </div>
 
     <div class="right-panel" id="right-panel">
-      <div class="drag-bar" data-tauri-drag-region title="Kéo để di chuyển widget"></div>
+      <div class="drag-bar" data-tauri-drag-region data-i18n-title="dragHint"></div>
       <div class="panel-container" id="panel-container">
-        <div class="panel" data-panel="0" id="panel-weather">
-          <div class="panel-header">Thời tiết hôm nay</div>
+        <div class="panel" data-panel="0" id="panel-notes">
+          <div class="panel-header">
+            <span data-i18n="notes">Notes</span>
+            <button class="note-add-btn" id="note-add-btn" data-i18n="addNote">+ Thêm</button>
+          </div>
+          <div class="notes-list" id="notes-list"></div>
+        </div>
+
+        <div class="panel" data-panel="1" id="panel-weather">
+          <div class="panel-header" data-i18n="weatherToday">Thời tiết hôm nay</div>
           <div class="weather-current">
             <span id="current-temp" class="current-temp">32°C</span>
             <span id="current-desc" class="current-desc">Trời trong</span>
@@ -33,34 +41,81 @@
           <div class="weather-forecast" id="weather-forecast"></div>
         </div>
 
-        <div class="panel" data-panel="1" id="panel-sysmon">
-          <div class="panel-header">System Monitor</div>
+        <div class="panel" data-panel="2" id="panel-sysmon">
+          <div class="panel-header" data-i18n="systemMonitor">System Monitor</div>
           <div class="sysinfo-grid" id="sysinfo-grid"></div>
         </div>
 
-        <div class="panel" data-panel="2" id="panel-calendar">
+        <div class="panel" data-panel="3" id="panel-calendar">
           <div class="panel-header">
             <button class="cal-nav" id="cal-prev">‹</button>
             <span id="cal-title">Tháng 8 2026</span>
             <button class="cal-nav" id="cal-next">›</button>
-            <button class="cal-nav" id="cal-today">Hôm nay</button>
+            <button class="cal-nav" id="cal-today" data-i18n="today">Hôm nay</button>
           </div>
           <div class="calendar-grid" id="calendar-grid"></div>
         </div>
 
-        <div class="panel" data-panel="3" id="panel-notes">
-          <div class="panel-header">
-            Notes
+        <div class="panel" data-panel="4" id="panel-settings">
+          <div class="panel-header" data-i18n="settings">Thiết lập</div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-i18n="appearance">Giao diện</div>
+                <div class="settings-hint" data-i18n="appearanceHint">Chọn tông màu</div>
+              </div>
+            </div>
+            <div class="theme-grid" id="theme-grid"></div>
           </div>
-          <div class="note-input-row">
-            <input id="note-input" placeholder="Thêm note mới..." maxlength="200">
-            <button class="add-note-btn" id="add-note-btn">+</button>
+          <div class="settings-group">
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="opacity">Độ trong suốt</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="range" id="opacity-range" class="range" min="0.6" max="1" step="0.02">
+                <span class="range-value" id="opacity-value"></span>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="language">Ngôn ngữ</span>
+              <div class="lang-pills" id="lang-pills">
+                <button class="lang-pill" data-lang="vi">Vi</button>
+                <button class="lang-pill" data-lang="en">En</button>
+                <button class="lang-pill" data-lang="zh">中</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label" data-i18n="autostart">Khởi động cùng Windows</span>
+              <div class="toggle" id="toggle-autostart"></div>
+            </div>
           </div>
-          <div class="notes-list" id="notes-list"></div>
+        </div>
+
+        <div class="panel" data-panel="5" id="panel-about">
+          <div class="panel-header" data-i18n="version">Phiên bản</div>
+          <div class="about-content" id="about-content"></div>
         </div>
         <div class="scroll-progress"><div class="scroll-thumb" id="scroll-thumb"></div></div>
       </div>
       <div class="panel-dots" id="panel-dots"></div>
+      <div class="note-modal-overlay" id="note-modal">
+        <div class="note-modal">
+          <input class="note-modal-title" id="note-modal-title" data-i18n-ph="noteTitlePlaceholder" placeholder="Tiêu đề...">
+          <div class="note-modal-toolbar">
+            <button class="nt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button class="nt-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button class="nt-btn" data-cmd="insertUnorderedList" title="List">•</button>
+            <button class="nt-btn" data-cmd="insertCheckbox" title="Checkbox">☑</button>
+            <button class="nt-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
+          </div>
+          <div class="note-modal-body" id="note-modal-body" contenteditable="true" data-i18n-ph="noteBodyPlaceholder"></div>
+          <div class="note-modal-footer">
+            <button class="nm-toggle" id="nm-pin" data-i18n="pin">Ghim</button>
+            <button class="nm-toggle" id="nm-hide" data-i18n="hideContent">Ẩn nội dung</button>
+            <button class="nm-danger" id="nm-delete" data-i18n="delete">Xóa</button>
+            <button class="nm-primary" id="nm-save" data-i18n="save">Lưu</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
