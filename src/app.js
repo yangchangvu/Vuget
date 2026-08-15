@@ -9,7 +9,7 @@ const THEMES = [
   { id: 'forest',    bg: '#101e18', accent: '#5fae7e' },
   { id: 'sand',      bg: '#282016', accent: '#d4a55a' },
 ];
-const APP_VERSION = '0.2.3';
+const APP_VERSION = '0.2.4';
 
 const I18N = {
   vi: {
@@ -54,6 +54,15 @@ const I18N = {
     disk: 'Đĩa',
     network: 'Mạng',
     changelog: 'Lịch sử cập nhật',
+    updateLabel: 'Cập nhật',
+    forceClose: 'Thoát ứng dụng',
+    restartApp: 'Khởi động lại',
+    checkUpdate: 'Kiểm tra bản mới',
+    checkingUpdate: 'Đang kiểm tra...',
+    upToDate: 'Đã là bản mới nhất',
+    updateAvailable: 'Có bản mới:',
+    updateOpenLink: 'Mở trang tải về',
+    updateError: 'Không thể kiểm tra bản mới',
   },
   en: {
     days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
@@ -97,6 +106,15 @@ const I18N = {
     disk: 'Disk',
     network: 'Network',
     changelog: 'Changelog',
+    updateLabel: 'Updates',
+    forceClose: 'Force Quit',
+    restartApp: 'Restart',
+    checkUpdate: 'Check for updates',
+    checkingUpdate: 'Checking...',
+    upToDate: "You're up to date",
+    updateAvailable: 'New version available:',
+    updateOpenLink: 'Open download page',
+    updateError: 'Could not check for updates',
   },
   zh: {
     days: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
@@ -140,6 +158,15 @@ const I18N = {
     disk: '磁盘',
     network: '网络',
     changelog: '更新日志',
+    updateLabel: '更新',
+    forceClose: '强制退出',
+    restartApp: '重启应用',
+    checkUpdate: '检查更新',
+    checkingUpdate: '正在检查...',
+    upToDate: '已是最新版本',
+    updateAvailable: '有新版本：',
+    updateOpenLink: '打开下载页',
+    updateError: '无法检查更新',
   },
 };
 let lang = 'vi';
@@ -766,6 +793,41 @@ document.getElementById('toggle-autostart').addEventListener('click', async func
   await invoke('save_config', { newConfig: config });
 });
 
+// Force quit / restart từ panel thiết đặt (Alt+F4 đã bị chặn).
+document.getElementById('btn-force-quit').addEventListener('click', () => invoke('quit_app'));
+document.getElementById('btn-restart-app').addEventListener('click', () => invoke('restart_app'));
+
+// Check update qua GitHub Releases API
+let lastUpdateStatus = null;
+document.getElementById('btn-check-update').addEventListener('click', async () => {
+  const statusEl = document.getElementById('update-status');
+  const btn = document.getElementById('btn-check-update');
+  if (lastUpdateStatus === 'checking') return;
+  lastUpdateStatus = 'checking';
+  statusEl.textContent = t('checkingUpdate');
+  statusEl.title = '';
+  btn.disabled = true;
+  btn.classList.add('busy');
+  try {
+    const info = await invoke('check_update', { currentVersion: APP_VERSION });
+    if (info.hasUpdate) {
+      statusEl.innerHTML = `${t('updateAvailable')} <b>v${escapeHtml(info.latestVersion)}</b> · <a href="${escapeHtml(info.htmlUrl)}" target="_blank">${t('updateOpenLink')}</a>`;
+      statusEl.title = `${t('updateAvailable')} v${info.latestVersion}`;
+    } else {
+      statusEl.textContent = t('upToDate');
+      statusEl.title = '';
+    }
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = t('updateError');
+    statusEl.title = String(e);
+  } finally {
+    lastUpdateStatus = null;
+    btn.disabled = false;
+    btn.classList.remove('busy');
+  }
+});
+
 document.querySelectorAll('.lang-pill').forEach(pill => {
   pill.addEventListener('click', async () => {
     lang = config.language = pill.dataset.lang;
@@ -780,6 +842,7 @@ document.querySelectorAll('.lang-pill').forEach(pill => {
 
 // ---------- About / Changelog ----------
 const CHANGELOG = [
+  { ver: '0.2.4', date: '2026-08-16', vi: 'Chặn Alt+F4 đóng app, thêm system tray (Quit/Restart), nút thoát/khởi động lại + kiểm tra bản mới qua GitHub trong panel Thiết lập.', en: 'Block Alt+F4 close, add system tray (Quit/Restart), add quit/restart + GitHub update check in Settings.', zh: '阻止 Alt+F4 关闭、新增系统托盘（退出/重启）、设置面板增加退出/重启与 GitHub 更新检查。' },
   { ver: '0.2.3', date: '2026-08-15', vi: 'Checkbox thông minh (debounce, idempotency, chống spam), single-instance, scrollbar bo tròn, notes list 5 gần nhất + xem thêm, scroll panel bằng kéo chuột.', en: 'Smart checkbox (debounce, idempotency, anti-spam), single-instance, rounded scrollbar, notes list shows 5 recent + expand, panel scroll by drag.', zh: '智能复选框（防抖、幂等、防刷屏）、单实例、圆角滚动条、便签列表显示5条+展开、面板拖拽滚动。' },
   { ver: '0.2.2', date: '2026-08-15', vi: 'Sửa checkbox không tạo ô thừa, thêm nút Hủy, overlay che toàn màn hình, scrollbar đẹp, scroll modal không đổi panel.', en: 'Fixed checkbox creating extra boxes, added Cancel button, full-screen overlay, improved scrollbar, modal scroll does not switch panels.', zh: '修复复选框多余框、新增取消按钮、全屏遮罩、改进滚动条、模态框滚动不切换面板。' },
   { ver: '0.2.1', date: '2026-08-15', vi: 'Nâng cấp Notes: tiêu đề + nội dung, modal editor (bold/checkbox/list), kéo-thả sắp xếp, ghim/ẩn. Chọn ngôn ngữ dạng pill. Hiển thị tác giả.', en: 'Notes upgrade: title + body, modal editor (bold/checkbox/list), drag-drop reorder, pin/hide. Language pills. Author info.', zh: '便签升级：标题+正文、模态编辑器（加粗/勾选/列表）、拖拽排序、置顶/隐藏。语言切换改为按钮。作者信息。' },

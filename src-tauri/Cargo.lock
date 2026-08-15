@@ -4031,11 +4031,12 @@ dependencies = [
 
 [[package]]
 name = "vuget"
-version = "0.1.0"
+version = "0.2.4"
 dependencies = [
  "chrono",
  "dirs",
  "reqwest 0.12.28",
+ "semver",
  "serde",
  "serde_json",
  "sysinfo",

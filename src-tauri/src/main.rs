@@ -11,6 +11,8 @@ use serde_json::{json, Value};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
+const GITHUB_REPO: &str = "yangchangvu/Vuget";
+
 struct AppState {
     config: Mutex<config::Config>,
     notes: Mutex<notes::Notes>,
@@ -144,6 +146,41 @@ async fn reorder_notes(state: State<'_, AppState>, ids: Vec<u32>) -> Result<(), 
     Ok(())
 }
 
+#[tauri::command]
+async fn check_update(current_version: String) -> Result<Value, String> {
+    // Ponytail: dùng reqwest sẵn có + GitHub public API, không cần thêm crate.
+    let url = format!("https://api.github.com/repos/{}/releases/latest", GITHUB_REPO);
+    let client = reqwest::Client::builder()
+        .user_agent("Vuget-UpdateChecker")
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp: Value = client.get(&url).send().await.map_err(|e| e.to_string())?.json().await.map_err(|e| e.to_string())?;
+    let tag = resp["tag_name"].as_str().unwrap_or("").trim_start_matches('v').to_string();
+    let has_update = if tag.is_empty() {
+        false
+    } else {
+        match (semver::Version::parse(&tag), semver::Version::parse(&current_version)) {
+            (Ok(remote), Ok(local)) => remote > local,
+            _ => false,
+        }
+    };
+    Ok(json!({
+        "hasUpdate": has_update,
+        "latestVersion": if tag.is_empty() { current_version.clone() } else { tag },
+        "htmlUrl": resp["html_url"].as_str().unwrap_or(""),
+    }))
+}
+
+#[tauri::command]
+fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
+fn restart_app(app: AppHandle) {
+    app.restart();
+}
+
 // Đồng bộ khóa registry Run (start with Windows) theo config
 fn sync_autostart(enabled: bool) {
     use winreg::enums::*;
@@ -194,7 +231,25 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            // Đặt cửa sổ vào vị trí đã lưu; nếu chưa có thì canh giữa màn hình chính
+            // System tray để thoát / restart khi Alt+F4 bị chặn
+            use tauri::menu::{Menu, MenuItem};
+            let quit_item = MenuItem::with_id(&handle, "quit", "Quit Vuget", true, None::<&str>)?;
+            let restart_item = MenuItem::with_id(&handle, "restart", "Restart", true, None::<&str>)?;
+            let menu = Menu::with_items(&handle, &[&restart_item, &quit_item])?;
+            let _tray = tauri::tray::TrayIconBuilder::new()
+                .tooltip("Vuget")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "quit" => app.exit(0),
+                    "restart" => app.restart(),
+                    _ => {}
+                })
+                .build(&handle)?;
+
+            // Đặt cửa sổ vào vị trí đã lưu; nếu chưa có thì canh giữa màn hình chính.
+            // Cửa sổ khai báo focus:false trong tauri.conf.json → khi autostart (hoặc mở tay)
+            // nó hiện ra phía sau app đang dùng, không cướp focus; click vào widget mới focus.
             let window = handle.get_webview_window("main").unwrap();
             {
                 let state = handle.state::<AppState>();
@@ -236,8 +291,16 @@ fn main() {
             }
             let h2 = handle.clone();
             window.on_window_event(move |event| {
-                if matches!(event, tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)) {
-                    schedule_save(h2.clone());
+                match event {
+                    tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                        schedule_save(h2.clone());
+                    }
+                    // Widget desktop không nên đóng bằng Alt+F4 — chặn CloseRequested.
+                    // Thoát app qua tray menu (nếu có) hoặc task manager nếu thực sự cần.
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        api.prevent_close();
+                    }
+                    _ => {}
                 }
             });
 
@@ -256,7 +319,10 @@ fn main() {
             delete_note,
             toggle_note_pinned,
             toggle_note_hidden,
-            reorder_notes
+            reorder_notes,
+            check_update,
+            quit_app,
+            restart_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

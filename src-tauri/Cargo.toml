@@ -1,6 +1,6 @@
 [package]
 name = "vuget"
-version = "0.2.3"
+version = "0.2.4"
 description = "Desktop Personal Widget"
 edition = "2021"
 
@@ -8,7 +8,8 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = "2"
+tauri = { version = "2", features = ["tray-icon"] }
+semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

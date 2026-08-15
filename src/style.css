@@ -840,6 +840,22 @@ input::placeholder, textarea::placeholder {
 .toggle.on { background: var(--accent); }
 .toggle.on::after { left: 20px; }
 
+.action-btns { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+.icon-btn {
+  width:28px; height:28px; padding:0; border:none; background:rgba(255,255,255,0.08);
+  color:var(--fg-dim); border-radius:6px; cursor:pointer; display:inline-flex;
+  align-items:center; justify-content:center; transition:background 0.15s,color 0.15s; flex-shrink:0;
+}
+.icon-btn svg { width:14px; height:14px; fill:currentColor; }
+.icon-btn:hover { background:rgba(255,255,255,0.18); color:var(--fg); }
+.icon-btn.danger:hover { background:rgba(255,80,80,0.22); color:#ffaaaa; }
+.icon-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.icon-btn.busy svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#update-status { font-size:11px; color:var(--fg-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+#update-status a { color:var(--accent); text-decoration:none; }
+#update-status a:hover { text-decoration:underline; }
+
 .range {
   -webkit-appearance: none;
   width: 110px;
