@@ -181,6 +181,19 @@ fn restart_app(app: AppHandle) {
     app.restart();
 }
 
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    // Webview Tauri không mở được link ngoài; dùng trình duyệt mặc định của Windows.
+    if !url.starts_with("https://") {
+        return Err("invalid url".into());
+    }
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // Đồng bộ khóa registry Run (start with Windows) theo config
 fn sync_autostart(enabled: bool) {
     use winreg::enums::*;
@@ -322,7 +335,8 @@ fn main() {
             reorder_notes,
             check_update,
             quit_app,
-            restart_app
+            restart_app,
+            open_url
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
