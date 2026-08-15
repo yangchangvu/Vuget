@@ -163,7 +163,29 @@ fn sync_autostart(enabled: bool) {
     }
 }
 
+// Kill mọi tiến trình redwidget.exe khác đang chạy (single instance)
+fn kill_other_instances() {
+    use std::process::{Command, id};
+    let self_pid = id();
+    // Liệt kê PID theo tên, kill các PID khác self
+    if let Ok(out) = Command::new("tasklist").args(["/FI", "IMAGENAME eq redwidget.exe", "/FO", "CSV", "/NH"]).output() {
+        let text = String::from_utf8_lossy(&out.stdout);
+        for line in text.lines() {
+            // Format: "redwidget.exe","1234","Console","1","12,345 K"
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() < 2 { continue; }
+            let pid_str = parts[1].trim_matches('"');
+            if let Ok(pid) = pid_str.parse::<u32>() {
+                if pid != self_pid as u32 {
+                    let _ = Command::new("taskkill").args(["/F", "/PID", &pid.to_string()]).output();
+                }
+            }
+        }
+    }
+}
+
 fn main() {
+    kill_other_instances();
     let state = AppState {
         config: Mutex::new(config::Config::load()),
         notes: Mutex::new(notes::Notes::load()),

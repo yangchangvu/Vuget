@@ -9,7 +9,7 @@ const THEMES = [
   { id: 'forest',    bg: '#101e18', accent: '#5fae7e' },
   { id: 'sand',      bg: '#282016', accent: '#d4a55a' },
 ];
-const APP_VERSION = '0.2.1';
+const APP_VERSION = '0.2.3';
 
 const I18N = {
   vi: {
@@ -27,8 +27,11 @@ const I18N = {
     hideContent: 'Ẩn nội dung',
     delete: 'Xóa',
     save: 'Lưu',
+    cancel: 'Hủy',
     pinned: 'Đã ghim',
     hidden: 'Đã ẩn',
+    showMore: 'xem thêm',
+    showLess: 'thu gọn',
     weatherToday: 'Thời tiết hôm nay',
     systemMonitor: 'System Monitor',
     today: 'Hôm nay',
@@ -67,8 +70,11 @@ const I18N = {
     hideContent: 'Hide content',
     delete: 'Delete',
     save: 'Save',
+    cancel: 'Cancel',
     pinned: 'Pinned',
     hidden: 'Hidden',
+    showMore: 'show more',
+    showLess: 'show less',
     weatherToday: "Today's weather",
     systemMonitor: 'System Monitor',
     today: 'Today',
@@ -107,8 +113,11 @@ const I18N = {
     hideContent: '隐藏内容',
     delete: '删除',
     save: '保存',
+    cancel: '取消',
     pinned: '已置顶',
     hidden: '已隐藏',
+    showMore: '更多',
+    showLess: '收起',
     weatherToday: '今日天气',
     systemMonitor: '系统监控',
     today: '今天',
@@ -323,18 +332,21 @@ function notePreview(note) {
   return txt.slice(0, 60) + (txt.length > 60 ? '…' : '');
 }
 
+let notesExpanded = false;
+const NOTES_PREVIEW_COUNT = 5;
+
 async function loadNotes() {
   const res = await invoke('get_notes');
   const list = document.getElementById('notes-list');
   list.innerHTML = '';
-  // Ghim lên đầu, còn lại giữ thứ tự
   const sorted = [...res.items].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
   if (sorted.length === 0) {
     list.innerHTML = `<div class="notes-empty">${t('notesEmpty')}</div>`;
     refreshScrollable();
     return;
   }
-  for (const note of sorted) {
+  const visible = notesExpanded ? sorted : sorted.slice(0, NOTES_PREVIEW_COUNT);
+  for (const note of visible) {
     const item = document.createElement('div');
     item.className = 'note-card' + (note.pinned ? ' pinned' : '');
     item.dataset.id = note.id;
@@ -357,6 +369,20 @@ async function loadNotes() {
       loadNotes();
     });
     list.appendChild(item);
+  }
+  // Nút xem thêm nếu còn note ẩn
+  if (!notesExpanded && sorted.length > NOTES_PREVIEW_COUNT) {
+    const more = document.createElement('div');
+    more.className = 'notes-more';
+    more.innerHTML = `+${sorted.length - NOTES_PREVIEW_COUNT} ${t('showMore')}`;
+    more.addEventListener('click', () => { notesExpanded = true; loadNotes(); });
+    list.appendChild(more);
+  } else if (notesExpanded && sorted.length > NOTES_PREVIEW_COUNT) {
+    const less = document.createElement('div');
+    less.className = 'notes-more';
+    less.textContent = t('showLess');
+    less.addEventListener('click', () => { notesExpanded = false; loadNotes(); });
+    list.appendChild(less);
   }
   bindNoteDrag(list);
   refreshScrollable();
@@ -401,6 +427,7 @@ document.getElementById('note-add-btn').addEventListener('click', async () => {
 });
 
 document.getElementById('nm-save').addEventListener('click', saveCurrentNote);
+document.getElementById('nm-cancel').addEventListener('click', closeNoteModal);
 document.getElementById('nm-delete').addEventListener('click', async () => {
   if (currentNoteId == null) return;
   await invoke('delete_note', { id: currentNoteId });
@@ -426,24 +453,78 @@ document.querySelectorAll('.nt-btn').forEach(btn => {
     e.preventDefault();
     const cmd = btn.dataset.cmd;
     const val = btn.dataset.val || null;
+    const body = document.getElementById('note-modal-body');
     if (cmd === 'insertCheckbox') {
-      document.execCommand('insertHTML', false, '<input type="checkbox" class="note-check"> ');
+      toggleCheckboxLine(body);
     } else if (cmd === 'formatBlock') {
       document.execCommand('formatBlock', false, val);
     } else {
       document.execCommand(cmd, false, null);
     }
-    document.getElementById('note-modal-body').focus();
+    body.focus();
   });
 });
 
-// Đóng modal: Esc, click overlay
+// Toggle checkbox cho dòng hiện tại — rule chặt chẽ, chống spam
+let lastCheckboxToggle = 0;
+
+function toggleCheckboxLine(body) {
+  // Rule 1: Debounce 250ms — chống spam click
+  const now = Date.now();
+  if (now - lastCheckboxToggle < 250) return;
+  lastCheckboxToggle = now;
+
+  const sel = window.getSelection();
+  if (sel.rangeCount === 0) return;
+
+  // Rule 2: Tìm block element chứa caret (div, p, li)
+  let block = sel.anchorNode;
+  while (block && block !== body) {
+    if (block.nodeType === 1 && ['DIV', 'P', 'LI'].includes(block.tagName)) break;
+    block = block.parentNode;
+  }
+  if (!block || block === body) {
+    // Fallback: tạo block mới
+    document.execCommand('formatBlock', false, 'div');
+    block = body.querySelector('div:last-child') || body;
+  }
+
+  // Rule 3: Kiểm tra checkbox hiện tại trong block (idempotency)
+  const existing = block.querySelector(':scope > input.note-check');
+  if (existing) {
+    // Đã có → bỏ, không tạo mới
+    existing.remove();
+    block.classList.remove('note-check-line');
+    return;
+  }
+
+  // Rule 4: Không tạo trong blockquote (giữ ngữ cảnh quote)
+  if (block.tagName === 'LI' || block.closest('blockquote')) {
+    // Trong list/blockquote: thêm checkbox vào đầu nội dung, giữ nguyên cấu trúc
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'note-check';
+    block.insertBefore(cb, block.firstChild);
+    block.classList.add('note-check-line');
+    return;
+  }
+
+  // Rule 5: Chỉ tạo khi dòng có text hoặc rỗng (không giữa từ)
+  // Thêm checkbox đầu dòng
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'note-check';
+  block.insertBefore(cb, block.firstChild);
+  block.classList.add('note-check-line');
+}
+
+// Đóng modal: Esc, click overlay = Hủy (không lưu)
 document.getElementById('note-modal').addEventListener('click', e => {
-  if (e.target.id === 'note-modal') saveCurrentNote();
+  if (e.target.id === 'note-modal') closeNoteModal();
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('note-modal').classList.contains('open')) {
-    saveCurrentNote();
+    closeNoteModal();
   }
 });
 
@@ -462,10 +543,11 @@ function bindNoteDrag(list) {
       const rect = card.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
 
-      placeholder = card.cloneNode(true);
-      placeholder.classList.add('placeholder');
+      placeholder = document.createElement('div');
+      placeholder.className = 'note-card placeholder';
       placeholder.style.height = rect.height + 'px';
-      card.parentNode.insertBefore(placeholder, card.nextSibling);
+
+      card.parentNode.insertBefore(placeholder, card);
 
       card.style.position = 'fixed';
       card.style.zIndex = '1000';
@@ -480,13 +562,13 @@ function bindNoteDrag(list) {
       function onUp() {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
-        card.classList.remove('dragging');
-        card.style.cssText = '';
         if (placeholder.parentNode) {
           list.insertBefore(card, placeholder);
           placeholder.remove();
         }
-        const ids = [...list.querySelectorAll('.note-card')].map(c => Number(c.dataset.id));
+        card.classList.remove('dragging');
+        card.style.cssText = '';
+        const ids = [...list.querySelectorAll('.note-card:not(.placeholder)')].map(c => Number(c.dataset.id));
         invoke('reorder_notes', { ids });
         dragEl = null;
         placeholder = null;
@@ -584,27 +666,7 @@ function switchPanel(idx, dir) {
   refreshScrollable();
 }
 
-// Kéo chuột để cuộn nội dung khi panel tràn (wheel vẫn dành cho đổi panel)
-const rightPanelEl = document.getElementById('right-panel');
-const scrollThumb = document.getElementById('scroll-thumb');
-let scrollHideTimer = null;
-
-function updateScrollProgress(el) {
-  const max = el.scrollHeight - el.clientHeight;
-  if (max <= 0) return;
-  const trackH = el.clientHeight;
-  const thumbH = Math.max(28, trackH * (el.clientHeight / el.scrollHeight));
-  scrollThumb.style.height = thumbH + 'px';
-  scrollThumb.style.top = (el.scrollTop / max) * (trackH - thumbH) + 'px';
-}
-
-function flashScrollProgress(el) {
-  updateScrollProgress(el);
-  rightPanelEl.classList.add('scrolling');
-  clearTimeout(scrollHideTimer);
-  scrollHideTimer = setTimeout(() => rightPanelEl.classList.remove('scrolling'), 700);
-}
-
+// Scroll: panel kéo chuột để scroll, wheel đổi panel; chỉ modal body scroll bằng wheel
 panelEls.forEach(el => {
   let dragging = false, startY = 0, startScroll = 0;
   el.addEventListener('mousedown', e => {
@@ -619,14 +681,11 @@ panelEls.forEach(el => {
   window.addEventListener('mousemove', e => {
     if (!dragging) return;
     el.scrollTop = startScroll - (e.clientY - startY);
-    flashScrollProgress(el);
   });
   window.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
     el.classList.remove('dragging');
-    clearTimeout(scrollHideTimer);
-    scrollHideTimer = setTimeout(() => rightPanelEl.classList.remove('scrolling'), 700);
   });
 });
 
@@ -636,6 +695,8 @@ function refreshScrollable() {
 }
 
 document.getElementById('right-panel').addEventListener('wheel', (e) => {
+  // Chỉ modal body được scroll bằng wheel, còn lại wheel đổi panel
+  if (e.target.closest('#note-modal-body')) return;
   e.preventDefault();
   if (Math.abs(e.deltaY) < 5) return;
   const now = Date.now();
@@ -719,6 +780,8 @@ document.querySelectorAll('.lang-pill').forEach(pill => {
 
 // ---------- About / Changelog ----------
 const CHANGELOG = [
+  { ver: '0.2.3', date: '2026-08-15', vi: 'Checkbox thông minh (debounce, idempotency, chống spam), single-instance, scrollbar bo tròn, notes list 5 gần nhất + xem thêm, scroll panel bằng kéo chuột.', en: 'Smart checkbox (debounce, idempotency, anti-spam), single-instance, rounded scrollbar, notes list shows 5 recent + expand, panel scroll by drag.', zh: '智能复选框（防抖、幂等、防刷屏）、单实例、圆角滚动条、便签列表显示5条+展开、面板拖拽滚动。' },
+  { ver: '0.2.2', date: '2026-08-15', vi: 'Sửa checkbox không tạo ô thừa, thêm nút Hủy, overlay che toàn màn hình, scrollbar đẹp, scroll modal không đổi panel.', en: 'Fixed checkbox creating extra boxes, added Cancel button, full-screen overlay, improved scrollbar, modal scroll does not switch panels.', zh: '修复复选框多余框、新增取消按钮、全屏遮罩、改进滚动条、模态框滚动不切换面板。' },
   { ver: '0.2.1', date: '2026-08-15', vi: 'Nâng cấp Notes: tiêu đề + nội dung, modal editor (bold/checkbox/list), kéo-thả sắp xếp, ghim/ẩn. Chọn ngôn ngữ dạng pill. Hiển thị tác giả.', en: 'Notes upgrade: title + body, modal editor (bold/checkbox/list), drag-drop reorder, pin/hide. Language pills. Author info.', zh: '便签升级：标题+正文、模态编辑器（加粗/勾选/列表）、拖拽排序、置顶/隐藏。语言切换改为按钮。作者信息。' },
   { ver: '0.2.0', date: '2026-08-14', vi: 'Thêm 5 theme (đỏ/tối/đêm/rừng/cát), i18n Việt-Anh-Trung, panel phiên bản.', en: 'Added 5 themes, EN/Vi/Zh i18n, version panel.', zh: '新增 5 主题、中英越三语、版本面板。' },
   { ver: '0.1.2', date: '2026-08-14', vi: 'Khởi động cùng Windows (registry Run), nhớ vị trí cửa sổ.', en: 'Start with Windows, remember window position.', zh: '开机启动、记住窗口位置。' },

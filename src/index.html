@@ -94,27 +94,28 @@
           <div class="panel-header" data-i18n="version">Phiên bản</div>
           <div class="about-content" id="about-content"></div>
         </div>
-        <div class="scroll-progress"><div class="scroll-thumb" id="scroll-thumb"></div></div>
       </div>
       <div class="panel-dots" id="panel-dots"></div>
-      <div class="note-modal-overlay" id="note-modal">
-        <div class="note-modal">
-          <input class="note-modal-title" id="note-modal-title" data-i18n-ph="noteTitlePlaceholder" placeholder="Tiêu đề...">
-          <div class="note-modal-toolbar">
-            <button class="nt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-            <button class="nt-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-            <button class="nt-btn" data-cmd="insertUnorderedList" title="List">•</button>
-            <button class="nt-btn" data-cmd="insertCheckbox" title="Checkbox">☑</button>
-            <button class="nt-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
-          </div>
-          <div class="note-modal-body" id="note-modal-body" contenteditable="true" data-i18n-ph="noteBodyPlaceholder"></div>
-          <div class="note-modal-footer">
-            <button class="nm-toggle" id="nm-pin" data-i18n="pin">Ghim</button>
-            <button class="nm-toggle" id="nm-hide" data-i18n="hideContent">Ẩn nội dung</button>
-            <button class="nm-danger" id="nm-delete" data-i18n="delete">Xóa</button>
-            <button class="nm-primary" id="nm-save" data-i18n="save">Lưu</button>
-          </div>
-        </div>
+    </div>
+  </div>
+
+  <div class="note-modal-overlay" id="note-modal">
+    <div class="note-modal">
+      <input class="note-modal-title" id="note-modal-title" data-i18n-ph="noteTitlePlaceholder" placeholder="Tiêu đề..." spellcheck="false">
+      <div class="note-modal-toolbar">
+        <button class="nt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button class="nt-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button class="nt-btn" data-cmd="insertUnorderedList" title="List">•</button>
+        <button class="nt-btn" data-cmd="insertCheckbox" title="Checkbox">☑</button>
+        <button class="nt-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
+      </div>
+      <div class="note-modal-body" id="note-modal-body" contenteditable="true" data-i18n-ph="noteBodyPlaceholder" spellcheck="false"></div>
+      <div class="note-modal-footer">
+        <button class="nm-toggle" id="nm-pin" data-i18n="pin">Ghim</button>
+        <button class="nm-toggle" id="nm-hide" data-i18n="hideContent">Ẩn nội dung</button>
+        <button class="nm-secondary" id="nm-cancel" data-i18n="cancel">Hủy</button>
+        <button class="nm-danger" id="nm-delete" data-i18n="delete">Xóa</button>
+        <button class="nm-primary" id="nm-save" data-i18n="save">Lưu</button>
       </div>
     </div>
   </div>

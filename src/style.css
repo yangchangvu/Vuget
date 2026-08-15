@@ -52,6 +52,36 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Scrollbar thanh lịch cho toàn app */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+  transition: background 0.25s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--accent);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
 html, body {
   width: 100%;
   height: 100%;
@@ -164,10 +194,16 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
-  scrollbar-width: none; /* ẩn scrollbar native, cuộn bằng kéo chuột */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.16) transparent;
 }
-
-.panel::-webkit-scrollbar { display: none; }
+.panel::-webkit-scrollbar { width: 6px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+  border-radius: 3px;
+}
+.panel::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
 
 .panel.active {
   opacity: 1;
@@ -194,25 +230,7 @@ html, body {
   to { transform: translateY(15%); opacity: 0; }
 }
 
-/* Thanh progress cuộn nội dung — mỏng, bên trái, chỉ hiện khi kéo */
-.scroll-progress {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 6;
-}
-
-.right-panel.scrolling .scroll-progress { opacity: 1; }
-
-.scroll-thumb {
-  position: absolute;
-  right: 4px;
-  width: 2px;
-  border-radius: 1px;
-  background: rgba(255, 255, 255, 0.32);
-}
+/* Thanh progress cuộn nội dung — đã bỏ, dùng scrollbar native */
 
 /* Khi đang cuộn nội dung thì ẩn dots để khỏi chồng chéo */
 .right-panel.scrolling .panel-dots { opacity: 0; }
@@ -299,29 +317,36 @@ html, body {
 .fc-temp { font-size: 13px; font-weight: 500; }
 
 /* System monitor */
-.sysinfo-grid { display: flex; flex-direction: column; gap: 14px; }
+.sysinfo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sysinfo-grid .sysinfo-item:last-child {
+  grid-column: 1 / -1;
+}
 
 .sysinfo-item {
   background: var(--panel-bg);
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: 8px;
+  padding: 8px 12px;
 }
 
 .sysinfo-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--fg-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
-.sysinfo-value { font-size: 22px; font-weight: 300; }
+.sysinfo-value { font-size: 18px; font-weight: 300; line-height: 1.2; }
 
 .sysinfo-bar {
-  height: 4px;
+  height: 3px;
   background: rgba(255,255,255,0.08);
   border-radius: 2px;
-  margin-top: 8px;
+  margin-top: 6px;
   overflow: hidden;
 }
 
@@ -504,13 +529,14 @@ html, body {
 
 /* Note modal */
 .note-modal-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(3px);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 9999;
   padding: 16px;
 }
 .note-modal-overlay.open { display: flex; }
@@ -570,7 +596,16 @@ html, body {
   outline: none;
   user-select: text;
   min-height: 120px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.18) transparent;
 }
+.note-modal-body::-webkit-scrollbar { width: 6px; }
+.note-modal-body::-webkit-scrollbar-track { background: transparent; }
+.note-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.16);
+  border-radius: 3px;
+}
+.note-modal-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
 .note-modal-body:focus { background: rgba(255,255,255,0.02); }
 .note-modal-body blockquote {
   border-left: 3px solid var(--accent);
@@ -579,12 +614,24 @@ html, body {
   color: var(--fg-dim);
 }
 .note-modal-body ul { padding-left: 22px; margin: 4px 0; }
+.note-modal-body .note-check-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 3px 0;
+  padding-left: 2px;
+}
+.note-modal-body .note-check-line .note-check {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
 .note-modal-body input[type="checkbox"].note-check {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   vertical-align: middle;
-  margin-right: 4px;
+  margin-right: 6px;
   accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .note-modal-footer {
@@ -610,8 +657,19 @@ html, body {
   border-color: var(--accent);
   color: var(--fg);
 }
-.nm-danger {
+.nm-secondary {
   margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--fg-dim);
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+.nm-secondary:hover { color: var(--fg); border-color: rgba(255,255,255,0.25); }
+.nm-danger {
   background: rgba(255,80,80,0.12);
   border: 1px solid rgba(255,80,80,0.3);
   color: #ff8080;
@@ -641,6 +699,18 @@ html, body {
   text-align: center;
   padding: 24px 0;
 }
+
+.notes-more {
+  text-align: center;
+  padding: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.notes-more:hover { background: var(--accent-soft); }
 
 /* Lang pills */
 .lang-pills {
