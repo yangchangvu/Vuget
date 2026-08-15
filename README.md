@@ -1,4 +1,4 @@
-# RedWidget — Desktop Personal Widget
+# Vuget — Desktop Personal Widget
 
 Widget cá nhân ghim trên Windows Desktop: đồng hồ, lịch âm/dương, thời tiết,
 system monitor và ghi chú — trong một cửa sổ nhỏ, trong suốt, tối giản,
@@ -56,7 +56,7 @@ cảm giác như một phần của desktop.
 ```bash
 cd src-tauri
 cargo run              # dev
-cargo build --release  # bản release: target/release/redwidget.exe
+cargo build --release  # bản release: target/release/vuget.exe
 ```
 
 Test lịch âm:
@@ -70,7 +70,7 @@ cargo test
 Bản release là **1 file exe duy nhất** (~4.5 MB), không cần cài đặt:
 
 ```
-src-tauri/target/release/redwidget.exe
+src-tauri/target/release/vuget.exe
 ```
 
 Gửi file này qua Zalo/Drive/USB — người nhận double-click là chạy.
@@ -98,7 +98,7 @@ chọn *More info → Run anyway*.
     └── capabilities/
 ```
 
-Dữ liệu người dùng (settings, notes) lưu trong `%APPDATA%/RedWidget/`.
+Dữ liệu người dùng (settings, notes) lưu trong `%APPDATA%/Vuget/`.
 Không telemetry, không analytics.
 
 ## Roadmap

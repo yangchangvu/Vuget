@@ -156,22 +156,20 @@ fn sync_autostart(enabled: bool) {
     };
     if enabled {
         if let Ok(exe) = std::env::current_exe() {
-            let _ = run.set_value("RedWidget", &exe.to_string_lossy().to_string());
+            let _ = run.set_value("Vuget", &exe.to_string_lossy().to_string());
         }
     } else {
-        let _ = run.delete_value("RedWidget");
+        let _ = run.delete_value("Vuget");
     }
 }
 
-// Kill mọi tiến trình redwidget.exe khác đang chạy (single instance)
+// Kill mọi tiến trình vuget.exe khác đang chạy (single instance)
 fn kill_other_instances() {
     use std::process::{Command, id};
     let self_pid = id();
-    // Liệt kê PID theo tên, kill các PID khác self
-    if let Ok(out) = Command::new("tasklist").args(["/FI", "IMAGENAME eq redwidget.exe", "/FO", "CSV", "/NH"]).output() {
+    if let Ok(out) = Command::new("tasklist").args(["/FI", "IMAGENAME eq vuget.exe", "/FO", "CSV", "/NH"]).output() {
         let text = String::from_utf8_lossy(&out.stdout);
         for line in text.lines() {
-            // Format: "redwidget.exe","1234","Console","1","12,345 K"
             let parts: Vec<&str> = line.split(',').collect();
             if parts.len() < 2 { continue; }
             let pid_str = parts[1].trim_matches('"');

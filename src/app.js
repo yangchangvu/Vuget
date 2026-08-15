@@ -801,7 +801,7 @@ function renderAbout() {
   c.innerHTML = `
     <div class="about-hero">
       <div class="about-app-row">
-        <span class="about-app-name">RedWidget</span>
+        <span class="about-app-name">Vuget</span>
         <span class="about-app-ver">v${APP_VERSION}</span>
       </div>
       <div class="about-author">

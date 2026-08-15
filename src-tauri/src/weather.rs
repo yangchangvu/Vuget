@@ -49,7 +49,7 @@ pub async fn fetch_weather(lat: f64, lon: f64) -> Result<WeatherData, String> {
 
     let resp = client
         .get(&url)
-        .header("User-Agent", "RedWidget/0.1")
+        .header("User-Agent", "Vuget/0.1")
         .send()
         .await
         .map_err(|e| e.to_string())?;

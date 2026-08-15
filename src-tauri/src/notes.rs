@@ -5,7 +5,7 @@ use std::path::PathBuf;
 fn notes_path() -> PathBuf {
     let dir = dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("RedWidget");
+        .join("Vuget");
     fs::create_dir_all(&dir).ok();
     dir.join("notes.json")
 }

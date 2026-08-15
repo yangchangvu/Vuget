@@ -5,7 +5,7 @@ use std::path::PathBuf;
 fn config_dir() -> PathBuf {
     let dir = dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("RedWidget");
+        .join("Vuget");
     fs::create_dir_all(&dir).ok();
     dir
 }

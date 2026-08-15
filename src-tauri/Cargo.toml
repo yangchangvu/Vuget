@@ -1,5 +1,5 @@
 [package]
-name = "redwidget"
+name = "vuget"
 version = "0.1.0"
 description = "Desktop Personal Widget"
 edition = "2021"
