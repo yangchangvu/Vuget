@@ -3,3 +3,5 @@ node_modules/
 src-tauri/gen/
 *.log
 .vscode/
+.env
+src-tauri/.env

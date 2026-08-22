@@ -34,6 +34,7 @@ pub struct Config {
     pub default_panel: u32,
     pub theme: String,
     pub language: String,
+    pub sync_code: String,
 }
 
 impl Default for Config {
@@ -56,6 +57,7 @@ impl Default for Config {
             default_panel: 0,
             theme: String::from("red"),
             language: String::from("vi"),
+            sync_code: String::new(),
         }
     }
 }

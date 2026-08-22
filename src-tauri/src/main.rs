@@ -3,6 +3,7 @@
 mod config;
 mod lunar;
 mod notes;
+mod sync;
 mod sysinfo;
 mod weather;
 
@@ -144,6 +145,69 @@ async fn reorder_notes(state: State<'_, AppState>, ids: Vec<u32>) -> Result<(), 
     let mut notes = state.notes.lock().unwrap();
     notes.reorder(ids);
     Ok(())
+}
+
+// ---------- Cloud sync (Firebase RTDB) ----------
+
+fn notes_as_values(state: &State<'_, AppState>) -> Vec<Value> {
+    let notes = state.notes.lock().unwrap();
+    notes.items.iter().filter_map(|n| serde_json::to_value(n).ok()).collect()
+}
+
+#[tauri::command]
+async fn sync_pull(state: State<'_, AppState>, code: String) -> Result<u32, String> {
+    let code = code.trim().to_string();
+    let payload = sync::sync_pull(&code).await?;
+    let items: Vec<notes::Note> = serde_json::from_value(Value::Array(payload.items))
+        .map_err(|e| format!("Dữ liệu cloud không hợp lệ: {}", e))?;
+    let count = items.len() as u32;
+    {
+        let mut notes = state.notes.lock().unwrap();
+        notes.set_items(items);
+    }
+    {
+        let mut cfg = state.config.lock().unwrap();
+        cfg.sync_code = code;
+        cfg.save();
+    }
+    Ok(count)
+}
+
+#[tauri::command]
+async fn sync_push(state: State<'_, AppState>) -> Result<String, String> {
+    let code = { state.config.lock().unwrap().sync_code.clone() };
+    if code.is_empty() {
+        return Err("Chưa liên kết mã đồng bộ nào.".into());
+    }
+    let items = notes_as_values(&state);
+    sync::sync_push(&code, items).await?;
+    Ok(code)
+}
+
+#[tauri::command]
+async fn sync_new_code(state: State<'_, AppState>) -> Result<String, String> {
+    let code = sync::sync_new_code().await?;
+    let items = notes_as_values(&state);
+    sync::sync_push(&code, items).await?;
+    {
+        let mut cfg = state.config.lock().unwrap();
+        cfg.sync_code = code.clone();
+        cfg.save();
+    }
+    Ok(code)
+}
+
+#[tauri::command]
+async fn sync_unlink(state: State<'_, AppState>) -> Result<(), String> {
+    let mut cfg = state.config.lock().unwrap();
+    cfg.sync_code = String::new();
+    cfg.save();
+    Ok(())
+}
+
+#[tauri::command]
+async fn sync_prune() -> Result<usize, String> {
+    sync::sync_prune_stale(90).await
 }
 
 #[tauri::command]
@@ -333,6 +397,11 @@ fn main() {
             toggle_note_pinned,
             toggle_note_hidden,
             reorder_notes,
+            sync_pull,
+            sync_push,
+            sync_new_code,
+            sync_unlink,
+            sync_prune,
             check_update,
             quit_app,
             restart_app,

@@ -105,4 +105,10 @@ impl Notes {
         });
         self.save();
     }
+
+    // Ghi đè toàn bộ danh sách (dùng khi kéo note từ cloud về).
+    pub fn set_items(&mut self, items: Vec<Note>) {
+        self.items = items;
+        self.save();
+    }
 }

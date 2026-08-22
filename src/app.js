@@ -9,7 +9,7 @@ const THEMES = [
   { id: 'forest',    bg: '#101e18', accent: '#5fae7e' },
   { id: 'sand',      bg: '#282016', accent: '#d4a55a' },
 ];
-const APP_VERSION = '0.2.5';
+const APP_VERSION = '0.2.6';
 
 const I18N = {
   vi: {
@@ -23,6 +23,25 @@ const I18N = {
     notesEmpty: 'Chưa có note nào — bấm "+ Thêm" để tạo.',
     noteTitlePlaceholder: 'Tiêu đề...',
     noteBodyPlaceholder: 'Nội dung...',
+    done: 'Xong',
+    autosaved: 'Đã tự lưu',
+    syncLabel: 'Đồng bộ note',
+    syncHint: 'Đồng bộ qua đám mây bằng mã 6 số',
+    syncCurrentCode: 'Mã hiện tại:',
+    syncCopy: 'Chép',
+    syncUnlink: 'Bỏ liên kết',
+    syncEnterCode: 'Nhập mã 6 số...',
+    syncPull: 'Tải về',
+    syncNewCode: 'Tạo mã mới',
+    syncPushNow: 'Đồng bộ ngay',
+    syncStatusPulling: 'Đang tải...',
+    syncStatusPullOk: 'Đã tải về {n} ghi chú.',
+    syncStatusPushing: 'Đang đồng bộ...',
+    syncStatusPushOk: 'Đã đồng bộ {code} lúc {time}.',
+    syncStatusCloneHint: 'Nhập mã của người khác → Tải về để sao chép bản đó, rồi bấm Tạo mã mới để tách sang mã riêng.',
+    syncStatusCopied: 'Đã chép.',
+    syncUnlinked: 'Đã bỏ liên kết.',
+    syncNewDone: 'Đã tạo {code} và đồng bộ.',
     pin: 'Ghim',
     hideContent: 'Ẩn nội dung',
     delete: 'Xóa',
@@ -75,6 +94,25 @@ const I18N = {
     notesEmpty: 'No notes yet — click "+ Add" to create.',
     noteTitlePlaceholder: 'Title...',
     noteBodyPlaceholder: 'Content...',
+    done: 'Done',
+    autosaved: 'Auto-saved',
+    syncLabel: 'Note sync',
+    syncHint: 'Cloud sync with a 6-digit code',
+    syncCurrentCode: 'Current code:',
+    syncCopy: 'Copy',
+    syncUnlink: 'Unlink',
+    syncEnterCode: 'Enter 6-digit code...',
+    syncPull: 'Pull',
+    syncNewCode: 'New code',
+    syncPushNow: 'Push now',
+    syncStatusPulling: 'Pulling...',
+    syncStatusPullOk: 'Pulled {n} notes.',
+    syncStatusPushing: 'Syncing...',
+    syncStatusPushOk: 'Synced {code} at {time}.',
+    syncStatusCloneHint: 'To clone another code: enter it, Pull, then New code to branch.',
+    syncStatusCopied: 'Copied.',
+    syncUnlinked: 'Unlinked.',
+    syncNewDone: 'Created {code} and synced.',
     pin: 'Pin',
     hideContent: 'Hide content',
     delete: 'Delete',
@@ -127,6 +165,25 @@ const I18N = {
     notesEmpty: '还没有便签 — 点击「+ 新增」创建。',
     noteTitlePlaceholder: '标题...',
     noteBodyPlaceholder: '内容...',
+    done: '完成',
+    autosaved: '已自动保存',
+    syncLabel: '便签同步',
+    syncHint: '使用 6 位数字码在云端同步',
+    syncCurrentCode: '当前码：',
+    syncCopy: '复制',
+    syncUnlink: '取消关联',
+    syncEnterCode: '输入 6 位数字码...',
+    syncPull: '拉取',
+    syncNewCode: '新建码',
+    syncPushNow: '立即同步',
+    syncStatusPulling: '拉取中...',
+    syncStatusPullOk: '已拉取 {n} 条便签。',
+    syncStatusPushing: '同步中...',
+    syncStatusPushOk: '已同步 {code} 于 {time}。',
+    syncStatusCloneHint: '要克隆他人码：输入并拉取后，点新建码即可分流。',
+    syncStatusCopied: '已复制。',
+    syncUnlinked: '已取消关联。',
+    syncNewDone: '已创建 {code} 并同步。',
     pin: '置顶',
     hideContent: '隐藏内容',
     delete: '删除',
@@ -393,6 +450,7 @@ async function loadNotes() {
     item.querySelector('.note-card-delete').addEventListener('click', async e => {
       e.stopPropagation();
       await invoke('delete_note', { id: note.id });
+      cloudAutoPush();
       loadNotes();
     });
     list.appendChild(item);
@@ -418,134 +476,121 @@ async function loadNotes() {
 // ---------- Note modal ----------
 let currentNoteId = null;
 
+let quill = null;
+let autosaveTimer = null;
+
+function initQuill() {
+  if (quill) return;
+  quill = new Quill('#note-modal-body', {
+    modules: { toolbar: '#note-toolbar' },
+    theme: 'snow',
+    placeholder: t('noteBodyPlaceholder'),
+  });
+  quill.on('text-change', (delta, oldDelta, source) => {
+    if (source === 'user') scheduleAutosave();
+  });
+}
+
 async function openNoteModal(id) {
+  initQuill();
   currentNoteId = id;
   const res = await invoke('get_notes');
   const note = res.items.find(n => n.id === id);
   if (!note) return;
   const modal = document.getElementById('note-modal');
   document.getElementById('note-modal-title').value = note.title || '';
-  const body = document.getElementById('note-modal-body');
-  body.innerHTML = note.body || '';
+  // Nạp HTML cũ vào Quill — tương thích note tạo bằng bản cũ
+  quill.setContents([]);
+  if (note.body) quill.clipboard.dangerouslyPasteHTML(0, note.body, 'silent');
   document.getElementById('nm-pin').classList.toggle('active', note.pinned);
   document.getElementById('nm-hide').classList.toggle('active', note.hidden);
+  hideAutosaveHint();
   modal.classList.add('open');
   setTimeout(() => document.getElementById('note-modal-title').focus(), 50);
 }
 
-function closeNoteModal() {
-  document.getElementById('note-modal').classList.remove('open');
-  currentNoteId = null;
+function editorHtml() {
+  // Rỗng nếu editor không có text (Quill để lại <p><br></p>)
+  return quill.getText().trim() === '' ? '' : quill.root.innerHTML;
+}
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveCurrentNote, 500);
 }
 
 async function saveCurrentNote() {
   if (currentNoteId == null) return;
   const title = document.getElementById('note-modal-title').value.trim();
-  const body = document.getElementById('note-modal-body').innerHTML;
-  await invoke('update_note', { id: currentNoteId, title, body });
-  closeNoteModal();
+  await invoke('update_note', { id: currentNoteId, title, body: editorHtml() });
+  showAutosaveHint();
+  cloudAutoPush();
+}
+
+function showAutosaveHint() {
+  const el = document.getElementById('nm-autosave');
+  if (el) el.classList.add('show');
+}
+function hideAutosaveHint() {
+  const el = document.getElementById('nm-autosave');
+  if (el) el.classList.remove('show');
+}
+
+// Đóng modal: tự lưu; note rỗng hoàn toàn thì xóa luôn (không để rác)
+async function closeNoteModal() {
+  clearTimeout(autosaveTimer);
+  if (currentNoteId != null) {
+    const title = document.getElementById('note-modal-title').value.trim();
+    const body = editorHtml();
+    if (title === '' && body === '') {
+      await invoke('delete_note', { id: currentNoteId });
+    } else {
+      await invoke('update_note', { id: currentNoteId, title, body });
+      cloudAutoPush();
+    }
+  }
+  document.getElementById('note-modal').classList.remove('open');
+  currentNoteId = null;
   loadNotes();
 }
 
 document.getElementById('note-add-btn').addEventListener('click', async () => {
   const id = await invoke('add_note', { title: '', body: '' });
+  cloudAutoPush();
   await loadNotes();
   openNoteModal(id);
 });
 
-document.getElementById('nm-save').addEventListener('click', saveCurrentNote);
-document.getElementById('nm-cancel').addEventListener('click', closeNoteModal);
+document.getElementById('nm-close').addEventListener('click', closeNoteModal);
+document.getElementById('note-modal-title').addEventListener('input', scheduleAutosave);
 document.getElementById('nm-delete').addEventListener('click', async () => {
   if (currentNoteId == null) return;
-  await invoke('delete_note', { id: currentNoteId });
-  closeNoteModal();
+  const id = currentNoteId;
+  currentNoteId = null;          // chặn autosave/lưu lại khi đóng
+  clearTimeout(autosaveTimer);
+  await invoke('delete_note', { id });
+  document.getElementById('note-modal').classList.remove('open');
   loadNotes();
+  cloudAutoPush();
 });
 document.getElementById('nm-pin').addEventListener('click', async function() {
   if (currentNoteId == null) return;
   await invoke('toggle_note_pinned', { id: currentNoteId });
   this.classList.toggle('active');
   loadNotes();
+  cloudAutoPush();
 });
 document.getElementById('nm-hide').addEventListener('click', async function() {
   if (currentNoteId == null) return;
   await invoke('toggle_note_hidden', { id: currentNoteId });
   this.classList.toggle('active');
   loadNotes();
+  cloudAutoPush();
 });
 
-// Toolbar format
-document.querySelectorAll('.nt-btn').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.preventDefault();
-    const cmd = btn.dataset.cmd;
-    const val = btn.dataset.val || null;
-    const body = document.getElementById('note-modal-body');
-    if (cmd === 'insertCheckbox') {
-      toggleCheckboxLine(body);
-    } else if (cmd === 'formatBlock') {
-      document.execCommand('formatBlock', false, val);
-    } else {
-      document.execCommand(cmd, false, null);
-    }
-    body.focus();
-  });
-});
+// Trình soạn thảo rich-text dùng Quill (khởi tạo ở initQuill phía trên)
 
-// Toggle checkbox cho dòng hiện tại — rule chặt chẽ, chống spam
-let lastCheckboxToggle = 0;
-
-function toggleCheckboxLine(body) {
-  // Rule 1: Debounce 250ms — chống spam click
-  const now = Date.now();
-  if (now - lastCheckboxToggle < 250) return;
-  lastCheckboxToggle = now;
-
-  const sel = window.getSelection();
-  if (sel.rangeCount === 0) return;
-
-  // Rule 2: Tìm block element chứa caret (div, p, li)
-  let block = sel.anchorNode;
-  while (block && block !== body) {
-    if (block.nodeType === 1 && ['DIV', 'P', 'LI'].includes(block.tagName)) break;
-    block = block.parentNode;
-  }
-  if (!block || block === body) {
-    // Fallback: tạo block mới
-    document.execCommand('formatBlock', false, 'div');
-    block = body.querySelector('div:last-child') || body;
-  }
-
-  // Rule 3: Kiểm tra checkbox hiện tại trong block (idempotency)
-  const existing = block.querySelector(':scope > input.note-check');
-  if (existing) {
-    // Đã có → bỏ, không tạo mới
-    existing.remove();
-    block.classList.remove('note-check-line');
-    return;
-  }
-
-  // Rule 4: Không tạo trong blockquote (giữ ngữ cảnh quote)
-  if (block.tagName === 'LI' || block.closest('blockquote')) {
-    // Trong list/blockquote: thêm checkbox vào đầu nội dung, giữ nguyên cấu trúc
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.className = 'note-check';
-    block.insertBefore(cb, block.firstChild);
-    block.classList.add('note-check-line');
-    return;
-  }
-
-  // Rule 5: Chỉ tạo khi dòng có text hoặc rỗng (không giữa từ)
-  // Thêm checkbox đầu dòng
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.className = 'note-check';
-  block.insertBefore(cb, block.firstChild);
-  block.classList.add('note-check-line');
-}
-
-// Đóng modal: Esc, click overlay = Hủy (không lưu)
+// Đóng modal (tự lưu): Esc hoặc click ra ngoài overlay
 document.getElementById('note-modal').addEventListener('click', e => {
   if (e.target.id === 'note-modal') closeNoteModal();
 });
@@ -597,6 +642,7 @@ function bindNoteDrag(list) {
         card.style.cssText = '';
         const ids = [...list.querySelectorAll('.note-card:not(.placeholder)')].map(c => Number(c.dataset.id));
         invoke('reorder_notes', { ids });
+        cloudAutoPush();
         dragEl = null;
         placeholder = null;
       }
@@ -848,6 +894,7 @@ document.querySelectorAll('.lang-pill').forEach(pill => {
 
 // ---------- About / Changelog ----------
 const CHANGELOG = [
+  { ver: '0.2.6', date: '2026-08-23', vi: 'Trình soạn thảo note mới (Quill): đậm/nghiêng/tiêu đề/danh sách/checklist/trích dẫn/link + tự lưu. Đồng bộ note qua đám mây bằng mã 6 số: tự kéo về khi mở app, tự đẩy khi sửa, tự dọn mã cũ >90 ngày.', en: 'New note editor (Quill): bold/italic/headings/lists/checklist/quote/link + autosave. Cloud note sync via 6-digit code: auto-pull on launch, auto-push on edit, auto-prune codes older than 90 days.', zh: '全新便签编辑器（Quill）：加粗/斜体/标题/列表/清单/引用/链接 + 自动保存。通过 6 位数字码云同步：启动自动拉取、编辑自动推送、自动清理超过 90 天的旧码。' },
   { ver: '0.2.5', date: '2026-08-16', vi: 'Sửa link "Mở trang tải về" trong kiểm tra bản mới — giờ mở được bằng trình duyệt mặc định.', en: 'Fixed "Open download page" link in update check — now opens in the default browser.', zh: '修复更新检查中的「打开下载页」链接——现可在默认浏览器中打开。' },
   { ver: '0.2.4', date: '2026-08-16', vi: 'Chặn Alt+F4 đóng app, thêm system tray (Quit/Restart), nút thoát/khởi động lại + kiểm tra bản mới qua GitHub trong panel Thiết lập.', en: 'Block Alt+F4 close, add system tray (Quit/Restart), add quit/restart + GitHub update check in Settings.', zh: '阻止 Alt+F4 关闭、新增系统托盘（退出/重启）、设置面板增加退出/重启与 GitHub 更新检查。' },
   { ver: '0.2.3', date: '2026-08-15', vi: 'Checkbox thông minh (debounce, idempotency, chống spam), single-instance, scrollbar bo tròn, notes list 5 gần nhất + xem thêm, scroll panel bằng kéo chuột.', en: 'Smart checkbox (debounce, idempotency, anti-spam), single-instance, rounded scrollbar, notes list shows 5 recent + expand, panel scroll by drag.', zh: '智能复选框（防抖、幂等、防刷屏）、单实例、圆角滚动条、便签列表显示5条+展开、面板拖拽滚动。' },
@@ -885,6 +932,96 @@ function renderAbout() {
   refreshScrollable();
 }
 
+// ---------- Cloud sync (Firebase) ----------
+let syncCode = '';
+let cloudPushTimer = null;
+
+function nowHm() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function setSyncStatus(msg) {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = msg || '';
+}
+function renderSyncCode() {
+  const disp = document.getElementById('sync-code-display');
+  if (disp) disp.textContent = syncCode || '—';
+  const has = !!syncCode;
+  const copy = document.getElementById('sync-copy');
+  const unlink = document.getElementById('sync-unlink');
+  if (copy) copy.style.display = has ? '' : 'none';
+  if (unlink) unlink.style.display = has ? '' : 'none';
+}
+// Đẩy lên cloud (debounce) mỗi khi note thay đổi — chỉ khi đã liên kết mã.
+function cloudAutoPush() {
+  if (!syncCode) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(async () => {
+    try {
+      await invoke('sync_push');
+      setSyncStatus(t('syncStatusPushOk').replace('{code}', syncCode).replace('{time}', nowHm()));
+    } catch (e) { setSyncStatus('⚠ ' + e); }
+  }, 1500);
+}
+async function cloudPull(code) {
+  setSyncStatus(t('syncStatusPulling'));
+  try {
+    const n = await invoke('sync_pull', { code });
+    syncCode = code;
+    renderSyncCode();
+    await loadNotes();
+    setSyncStatus(t('syncStatusPullOk').replace('{n}', n));
+  } catch (e) { setSyncStatus('⚠ ' + e); }
+}
+async function cloudNewCode() {
+  setSyncStatus(t('syncStatusPushing'));
+  try {
+    const code = await invoke('sync_new_code');
+    syncCode = code;
+    renderSyncCode();
+    setSyncStatus(t('syncNewDone').replace('{code}', code));
+  } catch (e) { setSyncStatus('⚠ ' + e); }
+}
+async function cloudPushNow() {
+  if (!syncCode) { setSyncStatus(t('syncStatusCloneHint')); return; }
+  setSyncStatus(t('syncStatusPushing'));
+  try {
+    await invoke('sync_push');
+    setSyncStatus(t('syncStatusPushOk').replace('{code}', syncCode).replace('{time}', nowHm()));
+  } catch (e) { setSyncStatus('⚠ ' + e); }
+}
+function bindSyncUI() {
+  const input = document.getElementById('sync-input');
+  const pullBtn = document.getElementById('sync-pull-btn');
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') pullBtn.click(); });
+  pullBtn.addEventListener('click', () => {
+    const code = (input.value || '').trim();
+    if (!/^\d{6}$/.test(code)) { setSyncStatus('⚠ ' + t('syncEnterCode')); return; }
+    cloudPull(code);
+  });
+  document.getElementById('sync-new-btn').addEventListener('click', cloudNewCode);
+  document.getElementById('sync-push-btn').addEventListener('click', cloudPushNow);
+  document.getElementById('sync-copy').addEventListener('click', async () => {
+    if (!syncCode) return;
+    try { await navigator.clipboard.writeText(syncCode); setSyncStatus(t('syncStatusCopied')); } catch (_) {}
+  });
+  document.getElementById('sync-unlink').addEventListener('click', async () => {
+    await invoke('sync_unlink');
+    syncCode = '';
+    renderSyncCode();
+    setSyncStatus(t('syncUnlinked'));
+  });
+}
+// Khi mở app: tự kéo bản mới nhất (nếu đã liên kết), rồi dọn rác nền.
+async function initSync() {
+  syncCode = (config && config.sync_code) || '';
+  renderSyncCode();
+  bindSyncUI();
+  if (syncCode) { await cloudPull(syncCode); }
+  invoke('sync_prune').catch(() => {});
+}
 // ---------- Init ----------
 async function init() {
   config = await invoke('get_config');
@@ -908,6 +1045,7 @@ async function init() {
   sysTimer = setInterval(updateSysInfo, (config.sysmon_interval_s || 30) * 1000);
 
   switchPanel(config.default_panel || 0, 0);
+  initSync();
 }
 
 init();

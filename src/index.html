@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vuget</title>
+  <link rel="stylesheet" href="vendor/quill/quill.snow.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -103,6 +104,32 @@
               </div>
             </div>
           </div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" data-i18n="syncLabel">Đồng bộ note</div>
+                <div class="settings-hint" data-i18n="syncHint">Đồng bộ qua đám mây bằng mã 6 số</div>
+              </div>
+            </div>
+            <div class="sync-box">
+              <div class="sync-code-line">
+                <span class="sync-code-caption" data-i18n="syncCurrentCode">Mã hiện tại</span>
+                <span class="sync-code" id="sync-code-display">—</span>
+                <button class="sync-mini" id="sync-copy" data-i18n="syncCopy">Chép</button>
+                <button class="sync-mini" id="sync-unlink" data-i18n="syncUnlink">Bỏ liên kết</button>
+              </div>
+              <div class="sync-row">
+                <input class="sync-input" id="sync-input" inputmode="numeric" maxlength="6"
+                       data-i18n-ph="syncEnterCode" placeholder="Nhập mã 6 số...">
+                <button class="sync-btn" id="sync-pull-btn" data-i18n="syncPull">Tải về</button>
+              </div>
+              <div class="sync-row">
+                <button class="sync-btn sync-btn-alt" id="sync-new-btn" data-i18n="syncNewCode">Tạo mã mới</button>
+                <button class="sync-btn sync-btn-alt" id="sync-push-btn" data-i18n="syncPushNow">Đồng bộ ngay</button>
+              </div>
+              <div class="sync-status" id="sync-status"></div>
+            </div>
+          </div>
         </div>
 
         <div class="panel" data-panel="5" id="panel-about">
@@ -117,24 +144,44 @@
   <div class="note-modal-overlay" id="note-modal">
     <div class="note-modal">
       <input class="note-modal-title" id="note-modal-title" data-i18n-ph="noteTitlePlaceholder" placeholder="Tiêu đề..." spellcheck="false">
-      <div class="note-modal-toolbar">
-        <button class="nt-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-        <button class="nt-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-        <button class="nt-btn" data-cmd="insertUnorderedList" title="List">•</button>
-        <button class="nt-btn" data-cmd="insertCheckbox" title="Checkbox">☑</button>
-        <button class="nt-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
+      <div class="note-modal-toolbar" id="note-toolbar">
+        <span class="ql-formats">
+          <select class="ql-header">
+            <option value="1"></option>
+            <option value="2"></option>
+            <option selected></option>
+          </select>
+        </span>
+        <span class="ql-formats">
+          <button class="ql-bold" type="button"></button>
+          <button class="ql-italic" type="button"></button>
+          <button class="ql-strike" type="button"></button>
+        </span>
+        <span class="ql-formats">
+          <button class="ql-list" value="ordered" type="button"></button>
+          <button class="ql-list" value="bullet" type="button"></button>
+          <button class="ql-list" value="check" type="button"></button>
+        </span>
+        <span class="ql-formats">
+          <button class="ql-blockquote" type="button"></button>
+          <button class="ql-link" type="button"></button>
+        </span>
+        <span class="ql-formats">
+          <button class="ql-clean" type="button"></button>
+        </span>
       </div>
-      <div class="note-modal-body" id="note-modal-body" contenteditable="true" data-i18n-ph="noteBodyPlaceholder" spellcheck="false"></div>
+      <div class="note-modal-body" id="note-modal-body"></div>
       <div class="note-modal-footer">
         <button class="nm-toggle" id="nm-pin" data-i18n="pin">Ghim</button>
         <button class="nm-toggle" id="nm-hide" data-i18n="hideContent">Ẩn nội dung</button>
-        <button class="nm-secondary" id="nm-cancel" data-i18n="cancel">Hủy</button>
+        <span class="nm-autosave" id="nm-autosave" data-i18n="autosaved">Đã tự lưu</span>
         <button class="nm-danger" id="nm-delete" data-i18n="delete">Xóa</button>
-        <button class="nm-primary" id="nm-save" data-i18n="save">Lưu</button>
+        <button class="nm-primary" id="nm-close" data-i18n="done">Xong</button>
       </div>
     </div>
   </div>
 
+  <script src="vendor/quill/quill.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

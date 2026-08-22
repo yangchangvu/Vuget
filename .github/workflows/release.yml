@@ -18,6 +18,8 @@ jobs:
 
       - name: Build portable exe
         working-directory: src-tauri
+        env:
+          VUGET_FIREBASE_URL: ${{ secrets.VUGET_FIREBASE_URL }}
         run: cargo build --release
 
       - name: Publish release
