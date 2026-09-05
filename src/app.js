@@ -9,7 +9,7 @@ const THEMES = [
   { id: 'forest',    bg: '#101e18', accent: '#5fae7e' },
   { id: 'sand',      bg: '#282016', accent: '#d4a55a' },
 ];
-const APP_VERSION = '0.2.6';
+const APP_VERSION = '0.2.7';
 
 const I18N = {
   vi: {
@@ -894,6 +894,7 @@ document.querySelectorAll('.lang-pill').forEach(pill => {
 
 // ---------- About / Changelog ----------
 const CHANGELOG = [
+  { ver: '0.2.7', date: '2026-09-06', vi: 'Khac phuc cua so CMD hien khi khoi dong Windows.', en: 'Fix the console window appearing when Windows starts.', zh: '修复 Windows 启动时显示控制台窗口。' },
   { ver: '0.2.6', date: '2026-08-23', vi: 'Trình soạn thảo note mới (Quill): đậm/nghiêng/tiêu đề/danh sách/checklist/trích dẫn/link + tự lưu. Đồng bộ note qua đám mây bằng mã 6 số: tự kéo về khi mở app, tự đẩy khi sửa, tự dọn mã cũ >90 ngày.', en: 'New note editor (Quill): bold/italic/headings/lists/checklist/quote/link + autosave. Cloud note sync via 6-digit code: auto-pull on launch, auto-push on edit, auto-prune codes older than 90 days.', zh: '全新便签编辑器（Quill）：加粗/斜体/标题/列表/清单/引用/链接 + 自动保存。通过 6 位数字码云同步：启动自动拉取、编辑自动推送、自动清理超过 90 天的旧码。' },
   { ver: '0.2.5', date: '2026-08-16', vi: 'Sửa link "Mở trang tải về" trong kiểm tra bản mới — giờ mở được bằng trình duyệt mặc định.', en: 'Fixed "Open download page" link in update check — now opens in the default browser.', zh: '修复更新检查中的「打开下载页」链接——现可在默认浏览器中打开。' },
   { ver: '0.2.4', date: '2026-08-16', vi: 'Chặn Alt+F4 đóng app, thêm system tray (Quit/Restart), nút thoát/khởi động lại + kiểm tra bản mới qua GitHub trong panel Thiết lập.', en: 'Block Alt+F4 close, add system tray (Quit/Restart), add quit/restart + GitHub update check in Settings.', zh: '阻止 Alt+F4 关闭、新增系统托盘（退出/重启）、设置面板增加退出/重启与 GitHub 更新检查。' },

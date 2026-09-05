@@ -1,6 +1,6 @@
 [package]
 name = "vuget"
-version = "0.2.6"
+version = "0.2.7"
 description = "Desktop Personal Widget"
 edition = "2021"
 

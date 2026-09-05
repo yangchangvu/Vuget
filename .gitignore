@@ -5,3 +5,4 @@ src-tauri/gen/
 .vscode/
 .env
 src-tauri/.env
+.serena/
